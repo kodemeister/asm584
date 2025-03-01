@@ -26,6 +26,24 @@ import Text.Megaparsec
 
 -- *** Parsers *** --
 
+instructionP :: Parser Instruction
+instructionP =
+  choice'
+    [ -- Group 1: arithmetic/logical instructions.
+      do
+        RF n <- rfP
+        _ <- assignP
+        op <- operationP (rfWithNumberP n) wrP
+        pure $ RF_Assign_RF_Op_WR op,
+      WR_Assign_RF_Op_WR <$ wrP <* assignP <*> operationP rfP wrP,
+      DO_Assign_DI_Op_WR <$ doP <* assignP <*> operationP diP wrP,
+      WR_Assign_DI_Op_WR <$ wrP <* assignP <*> operationP diP wrP,
+      WR_Assign_DI_Op_XWR <$ wrP <* assignP <*> operationP diP xwrP,
+      XWR_Assign_DI_Op_WR <$ xwrP <* assignP <*> operationP diP wrP,
+      XWR_Assign_DI_Op_XWR <$ xwrP <* assignP <*> operationP diP xwrP,
+      DO_Assign_DI_Op_XWR <$ doP <* assignP <*> operationP diP xwrP
+    ]
+
 operationP :: Parser Tok -> Parser Tok -> Parser Operation
 operationP a b =
   choice'

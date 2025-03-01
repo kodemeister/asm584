@@ -31,6 +31,18 @@ type RFNumber = Int
 -- | Value of ALUCIN specified after the instruction (ALUCIN=0 or ALUCIN=1).
 type ALUCINValue = Bool
 
+data Instruction
+  = -- Group 1: arithmetic/logical instructions.
+    RF_Assign_RF_Op_WR Operation
+  | WR_Assign_RF_Op_WR Operation
+  | DO_Assign_DI_Op_WR Operation
+  | WR_Assign_DI_Op_WR Operation
+  | WR_Assign_DI_Op_XWR Operation
+  | XWR_Assign_DI_Op_WR Operation
+  | XWR_Assign_DI_Op_XWR Operation
+  | DO_Assign_DI_Op_XWR Operation
+  deriving (Eq, Show)
+
 data Operation
   = -- Arithmetic operations.
     Not_ALUCIN ALUCINValue

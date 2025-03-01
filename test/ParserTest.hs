@@ -28,7 +28,42 @@ import Test.Hspec.Megaparsec
 import Text.Megaparsec
 
 spec_parser :: Spec
-spec_parser =
+spec_parser = do
+  describe "instructions" $ do
+    describe "group 1: arithmetic/logical instructions" $ do
+      testInstruction
+        "RF := RF op WR"
+        "RF2 := RF2 and WR"
+        (RF_Assign_RF_Op_WR $ A_And_B (RF 2) WR)
+      testInstruction
+        "WR := RF op WR"
+        "РР := !РОН5 или РР"
+        (WR_Assign_RF_Op_WR $ Not_A_Or_B (RF 5) WR)
+      testInstruction
+        "DO := DI op WR"
+        "DO := WR - DI - 1 + C (C=1)"
+        (DO_Assign_DI_Op_WR $ B_Minus_A_Minus_One_Plus_ALUCIN DI WR True)
+      testInstruction
+        "WR := DI op WR"
+        "WR=DI-WR-1+C(C=0)"
+        (WR_Assign_DI_Op_WR $ A_Minus_B_Minus_One_Plus_ALUCIN DI WR False)
+      testInstruction
+        "WR := DI op XWR"
+        "РР=ШИНвх+РРР+П(П=0)"
+        (WR_Assign_DI_Op_XWR $ A_Plus_B_Plus_ALUCIN DI XWR False)
+      testInstruction
+        "XWR := DI op WR"
+        "xwr := di + alucin ( alucin = 1 )"
+        (XWR_Assign_DI_Op_WR $ A_Plus_ALUCIN DI True)
+      testInstruction
+        "XWR := DI op XWR"
+        "ррр := !ррр + п ( п = 1 )"
+        (XWR_Assign_DI_Op_XWR $ Not_B_Plus_ALUCIN XWR True)
+      testInstruction
+        "DO := DI op XWR"
+        "DO := !(DI xor XWR)"
+        (DO_Assign_DI_Op_XWR $ A_Xnor_B DI XWR)
+
   describe "operations" $ do
     describe "arithmetic" $ do
       testOperation
@@ -90,6 +125,10 @@ spec_parser =
       testOperation "!A or B" rfP wrP "!РОН1илиРР" (Not_A_Or_B (RF 1) WR)
       testOperation "A or B" rfP wrP "RF7 или WR" (A_Or_B (RF 7) WR)
   where
+    testInstruction name input output =
+      it ("parses an instruction '" ++ name ++ "'") $
+        parse instructionP "" input `shouldParse` output
+
     testOperation name a b input output =
       it ("parses an operation '" ++ name ++ "'") $
         parse (operationP a b) "" input `shouldParse` output
