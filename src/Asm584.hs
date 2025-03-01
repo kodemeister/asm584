@@ -19,9 +19,11 @@
 
 module Asm584
   ( module Asm584.Lexer,
+    module Asm584.Parser,
     module Asm584.Types,
   )
 where
 
 import Asm584.Lexer
+import Asm584.Parser
 import Asm584.Types

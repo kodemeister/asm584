@@ -28,6 +28,30 @@ type Parser = Parsec Void Text
 -- | Register number (0-7).
 type RFNumber = Int
 
+-- | Value of ALUCIN specified after the instruction (ALUCIN=0 or ALUCIN=1).
+type ALUCINValue = Bool
+
+data Operation
+  = -- Arithmetic operations.
+    Not_ALUCIN ALUCINValue
+  | B_Minus_A_Minus_One_Plus_ALUCIN Tok Tok ALUCINValue
+  | A_Minus_B_Minus_One_Plus_ALUCIN Tok Tok ALUCINValue
+  | A_Plus_B_Plus_ALUCIN Tok Tok ALUCINValue
+  | B_Plus_ALUCIN Tok ALUCINValue
+  | Not_B_Plus_ALUCIN Tok ALUCINValue
+  | A_Plus_ALUCIN Tok ALUCINValue
+  | Not_A_Plus_ALUCIN Tok ALUCINValue
+  | -- Logical operations.
+    A_And_B Tok Tok
+  | A_Xor_B Tok Tok
+  | A_Xnor_B Tok Tok
+  | Not_A_And_B Tok Tok
+  | A_And_Not_B Tok Tok
+  | A_Or_Not_B Tok Tok
+  | Not_A_Or_B Tok Tok
+  | A_Or_B Tok Tok
+  deriving (Eq, Show)
+
 data Tok
   = -- Registers.
     WR
