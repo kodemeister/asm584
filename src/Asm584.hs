@@ -17,4 +17,11 @@
  - along with asm584. If not, see <https://www.gnu.org/licenses/>.
  -}
 
-module Asm584 where
+module Asm584
+  ( module Asm584.Lexer,
+    module Asm584.Types,
+  )
+where
+
+import Asm584.Lexer
+import Asm584.Types

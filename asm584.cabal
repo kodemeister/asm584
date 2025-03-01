@@ -20,39 +20,52 @@ extra-doc-files:
 common warnings
     ghc-options: -Wall
 
+common dependencies
+    build-depends:
+        base >=4.17.2.1 && <5,
+        megaparsec ^>=9.7.0,
+        text ^>=2.1.2
+
 library
-    import:           warnings
+    import:           warnings, dependencies
     exposed-modules:
         Asm584
+        Asm584.Lexer
+        Asm584.Types
 
     -- other-modules:
     -- other-extensions:
-    build-depends:
-        base ^>=4.17.2.1
-
+    -- build-depends:
     hs-source-dirs:   src
     default-language: Haskell2010
 
 executable asm584
-    import:           warnings
+    import:           warnings, dependencies
     main-is:          Main.hs
     -- other-modules:
     -- other-extensions:
     build-depends:
-        asm584,
-        base ^>=4.17.2.1
+        asm584
 
     hs-source-dirs:   app
     default-language: Haskell2010
 
 test-suite asm584-test
-    import:           warnings
+    import:           warnings, dependencies
     default-language: Haskell2010
-    -- other-modules:
+    other-modules:
+        LexerTest
+
     -- other-extensions:
     type:             exitcode-stdio-1.0
     hs-source-dirs:   test
     main-is:          Main.hs
     build-depends:
         asm584,
-        base ^>=4.17.2.1
+        hspec ^>=2.11.11,
+        hspec-megaparsec ^>=2.2.1,
+        tasty ^>=1.5.3,
+        tasty-hspec ^>=1.2.0.4
+
+    build-tool-depends:
+        tasty-discover:tasty-discover ^>=5.0.1
