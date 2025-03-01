@@ -21,15 +21,31 @@ module Asm584.Types where
 
 import Data.Text (Text)
 import Data.Void
+import Data.Word
 import Text.Megaparsec
 
 type Parser = Parsec Void Text
+
+type Program = [Statement]
+
+type Label = Text
+
+-- | Instruction address (0-1023).
+type Address = Int
 
 -- | Register number (0-7).
 type RFNumber = Int
 
 -- | Value of ALUCIN specified after the instruction (ALUCIN=0 or ALUCIN=1).
 type ALUCINValue = Bool
+
+data Statement = Statement
+  { label :: Maybe Label,
+    instruction :: Instruction,
+    controlStatement :: Maybe ControlStatement,
+    comment :: Maybe Text
+  }
+  deriving (Eq, Show)
 
 data Instruction
   = -- Group 1: arithmetic/logical instructions.
@@ -62,6 +78,27 @@ data Operation
   | A_Or_Not_B Tok Tok
   | Not_A_Or_B Tok Tok
   | A_Or_B Tok Tok
+  deriving (Eq, Show)
+
+data ControlStatement
+  = ControlStatement_If Condition Label (Maybe Label)
+  | ControlStatement_Goto Label
+  | ControlStatement_Input Word16
+  deriving (Eq, Show)
+
+data Condition
+  = Condition_ALUCOUT
+  | Condition_ALUCOUT0
+  | Condition_ALUCOUT1
+  | Condition_ALUCOUT2
+  | Condition_Not_WRRT
+  | Condition_Not_WRLFT
+  | Condition_Not_XWRRT
+  | Condition_Not_XWRLFT
+  | Condition_XWR0
+  | Condition_XWR3
+  | Condition_AMSB
+  | Condition_BMSB
   deriving (Eq, Show)
 
 data Tok
