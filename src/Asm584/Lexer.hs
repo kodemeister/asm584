@@ -23,6 +23,7 @@ module Asm584.Lexer where
 import Asm584.Types
 import Data.Char
 import Data.Text (Text)
+import qualified Data.Text as T
 import Text.Megaparsec
 import Text.Megaparsec.Char
 import qualified Text.Megaparsec.Char.Lexer as L
@@ -174,6 +175,16 @@ numberSignP :: Parser Tok
 numberSignP = NumberSign <$ symbol "#"
 
 -- *** Utilities *** --
+
+identifierP :: Parser Text
+identifierP =
+  lexeme $
+    T.cons
+      <$> (satisfy isHeadChar <?> "letter or underscore character")
+      <*> takeWhileP (Just "letter, digit or underscore character") isTailChar
+  where
+    isHeadChar c = isAlpha c || c == '_'
+    isTailChar c = isAlphaNum c || c == '_'
 
 lexeme :: Parser a -> Parser a
 lexeme = L.lexeme spaces

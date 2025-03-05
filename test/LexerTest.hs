@@ -27,15 +27,15 @@ import Test.Hspec.Megaparsec
 import Text.Megaparsec
 
 spec_lexer :: Spec
-spec_lexer =
+spec_lexer = do
   describe "tokens" $ do
-    it "parses a regular token" $
+    it "parses a token" $
       parse wrP "" "WR" `shouldParse` WR
     it "parses a Russian token" $
       parse diP "" "ШИНВх" `shouldParse` DI
     it "parses a Russian token case-insensitively" $
       parse doP "" "ШинВых" `shouldParse` DO
-    it "skips trailing whitespaces" $
+    it "skips trailing whitespaces after a token" $
       parse ((,) <$> diP <*> doP <* eof) "" "DI \r\n\t DO \r\n"
         `shouldParse` (DI, DO)
     it "parses a register with valid number" $
@@ -46,3 +46,13 @@ spec_lexer =
       parse (rfWithNumberP 2) "" "RF2" `shouldParse` RF 2
     it "fails to parse a register with unexpected number" $
       parse (rfWithNumberP 2) "" `shouldFailOn` "RF3"
+
+  describe "identifiers" $ do
+    it "parses an identifier" $
+      parse identifierP "" "Name_10" `shouldParse` "Name_10"
+    it "parses a Russian identifier" $
+      parse identifierP "" "Имя_10" `shouldParse` "Имя_10"
+    it "skips trailing whitespaces after an identifier" $
+      parse (identifierP <* eof) "" "__myName__ \r\n" `shouldParse` "__myName__"
+    it "fails to parse an invalid identifier" $
+      parse identifierP "" `shouldFailOn` "10_Name"

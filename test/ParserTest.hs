@@ -29,6 +29,14 @@ import Text.Megaparsec
 
 spec_parser :: Spec
 spec_parser = do
+  describe "labels" $ do
+    it "parses a label" $
+      parse labelP "" "label_2: RF0 := DI" `shouldParse` "label_2"
+    it "parses a label with trailing spaces" $
+      parse labelP "" "метка_2  : РОН0 := ШИНвх" `shouldParse` "метка_2"
+    it "does not confuse a label with the destination operand" $
+      parse labelP "" `shouldFailOn` "RF0:=DI"
+
   describe "instructions" $ do
     describe "group 1: arithmetic/logical instructions" $ do
       testInstruction

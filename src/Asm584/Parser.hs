@@ -26,6 +26,13 @@ import Text.Megaparsec
 
 -- *** Parsers *** --
 
+-- | Parses a label (an identifier followed by colon character).
+-- Properly disambiguates labels from destination operands followed by
+-- Pascal-style assignment, e.g. "RF0" is not interpreted as label in the input
+-- string "RF0:=DI".
+labelP :: Parser Label
+labelP = (identifierP <?> "label") <* notFollowedBy assignP <* colonP
+
 instructionP :: Parser Instruction
 instructionP =
   choice'
