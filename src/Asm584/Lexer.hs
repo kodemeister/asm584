@@ -171,9 +171,6 @@ commaP = Comma <$ symbol ","
 colonP :: Parser Tok
 colonP = Colon <$ symbol ":"
 
-numberSignP :: Parser Tok
-numberSignP = NumberSign <$ symbol "#"
-
 -- *** Utilities *** --
 
 identifierP :: Parser Text
@@ -185,6 +182,15 @@ identifierP =
   where
     isHeadChar c = isAlpha c || c == '_'
     isTailChar c = isAlphaNum c || c == '_'
+
+commentP :: Parser Text
+commentP =
+  lexeme $
+    (satisfy isCommentChar <?> "comment character")
+      *> takeWhileP (Just "any character except newline") isNotNewline
+  where
+    isCommentChar c = c == ';' || c == '#'
+    isNotNewline c = c /= '\r' && c /= '\n'
 
 lexeme :: Parser a -> Parser a
 lexeme = L.lexeme spaces

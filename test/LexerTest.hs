@@ -56,3 +56,11 @@ spec_lexer = do
       parse (identifierP <* eof) "" "__myName__ \r\n" `shouldParse` "__myName__"
     it "fails to parse an invalid identifier" $
       parse identifierP "" `shouldFailOn` "10_Name"
+
+  describe "comments" $ do
+    it "parses a comment that ends with LF" $
+      parse commentP "" "; My Comment\n" `shouldParse` " My Comment"
+    it "parses a comment that ends with CRLF" $
+      parse commentP "" "# My Comment\r\n" `shouldParse` " My Comment"
+    it "skips trailing whitespaces after a comment" $
+      parse (commentP <* eof) "" ";Comment\r\n  " `shouldParse` "Comment"

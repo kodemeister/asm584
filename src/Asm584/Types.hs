@@ -154,5 +154,4 @@ data Tok
   | CloseParen
   | Comma
   | Colon
-  | NumberSign
   deriving (Eq, Show)
