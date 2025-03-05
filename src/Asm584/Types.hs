@@ -81,8 +81,8 @@ data Operation
   deriving (Eq, Show)
 
 data ControlStatement
-  = ControlStatement_If Condition Label (Maybe Label)
-  | ControlStatement_Goto Label
+  = ControlStatement_If Condition Location (Maybe Location)
+  | ControlStatement_Goto Location
   | ControlStatement_Input Word16
   deriving (Eq, Show)
 
@@ -99,6 +99,11 @@ data Condition
   | Condition_XWR3
   | Condition_AMSB
   | Condition_BMSB
+  deriving (Eq, Show)
+
+data Location
+  = Location_Label Label
+  | Location_Address Address
   deriving (Eq, Show)
 
 data Tok

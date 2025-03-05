@@ -22,6 +22,7 @@ module Asm584.Lexer where
 
 import Asm584.Types
 import Data.Char
+import Data.Foldable
 import Data.Text (Text)
 import qualified Data.Text as T
 import Text.Megaparsec
@@ -208,6 +209,31 @@ oneOfSymbols = choice . map symbol
 -- | Case-insensitive version of 'oneOfSymbols'.
 oneOfSymbols' :: [Text] -> Parser Text
 oneOfSymbols' = choice . map symbol'
+
+signed :: (Num a) => Parser a -> Parser a
+signed = L.signed spaces
+
+-- | Parses a N-digit binary number.
+binaryN :: Int -> Parser Integer
+binaryN n = binaryToInteger <$> lexeme (count n binDigitChar)
+
+-- | Parses a binary number divided into M groups of N digits separated by the
+-- given delimiter.
+binaryMxN :: Int -> Int -> Parser sep -> Parser Integer
+binaryMxN m n sep =
+  binaryToInteger
+    <$> ((++) . concat <$> count (m - 1) (group <* sep) <*> lexeme group)
+  where
+    group = count n binDigitChar
+
+binaryToInteger :: String -> Integer
+binaryToInteger = foldl' (\acc c -> acc * 2 + toInteger (digitToInt c)) 0
+
+decimal :: Parser Integer
+decimal = lexeme L.decimal
+
+hexadecimal :: Parser Integer
+hexadecimal = lexeme $ string' "0x" *> L.hexadecimal
 
 spaces :: Parser ()
 spaces = L.space space1 empty empty

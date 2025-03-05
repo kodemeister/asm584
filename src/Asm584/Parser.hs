@@ -22,7 +22,9 @@ module Asm584.Parser where
 import Asm584.Lexer
 import Asm584.Types
 import Data.Functor
+import Data.Word
 import Text.Megaparsec
+import Text.Megaparsec.Char
 
 -- *** Parsers *** --
 
@@ -99,7 +101,61 @@ operationP a b =
 alucinValueP :: Parser ALUCINValue
 alucinValueP = parens (alucinP *> equalP *> (zeroP <|> oneP)) <&> (== One)
 
+controlStatementP :: Parser ControlStatement
+controlStatementP =
+  choice
+    [ ControlStatement_If
+        <$ ifP
+        <*> conditionP
+        <* thenP
+        <*> locationP
+        <*> optional (elseP *> locationP),
+      ControlStatement_Goto <$ gotoP <*> locationP,
+      ControlStatement_Input <$ inputP <*> inputValueP
+    ]
+
+conditionP :: Parser Condition
+conditionP =
+  choice'
+    [ Condition_ALUCOUT <$ alucoutP,
+      Condition_ALUCOUT0 <$ alucout0P,
+      Condition_ALUCOUT1 <$ alucout1P,
+      Condition_ALUCOUT2 <$ alucout2P,
+      Condition_Not_WRRT <$ notP <* wrrtP,
+      Condition_Not_WRLFT <$ notP <* wrlftP,
+      Condition_Not_XWRRT <$ notP <* xwrrtP,
+      Condition_Not_XWRLFT <$ notP <* xwrlftP,
+      Condition_XWR0 <$ xwr0P,
+      Condition_XWR3 <$ xwr3P,
+      Condition_AMSB <$ amsbP,
+      Condition_BMSB <$ bmsbP
+    ]
+
+locationP :: Parser Location
+locationP =
+  (Location_Label <$> identifierP <?> "label")
+    <|> (Location_Address <$> addressP <?> "address")
+  where
+    addressP = fromInteger <$> valueInRange (0, maxInstructions - 1) decimal
+
+-- | Parses a 16-bit input value in one of the following formats:
+-- 1. A 16-digit binary number.
+-- 2. A binary number divided into 4 groups of 4 digits separated by space.
+-- 3. A hexadecimal number.
+-- 4. A signed or unsigned decimal number.
+inputValueP :: Parser Word16
+inputValueP =
+  choice
+    [ try $ fromInteger <$> binaryN 16,
+      try $ fromInteger <$> binaryMxN 4 4 spaceChar,
+      fromInteger <$> valueInRange (0, 65535) hexadecimal,
+      fromInteger <$> valueInRange (-32768, 65535) (signed decimal)
+    ]
+
 -- *** Utilities *** --
+
+maxInstructions :: (Num a) => a
+maxInstructions = 1024
 
 parens :: Parser a -> Parser a
 parens = between openParenP closeParenP
@@ -108,3 +164,10 @@ parens = between openParenP closeParenP
 -- back the parser state before trying the next alternative.
 choice' :: [Parser a] -> Parser a
 choice' = choice . map try
+
+valueInRange :: (Ord a, Show a) => (a, a) -> Parser a -> Parser a
+valueInRange (min', max') p = do
+  value <- p
+  if value >= min' && value <= max'
+    then pure value
+    else fail $ "value is out of range " ++ show min' ++ "-" ++ show max'

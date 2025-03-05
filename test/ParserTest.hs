@@ -132,6 +132,55 @@ spec_parser = do
       testOperation "A or !B" rfP wrP "РОН1или!РР" (A_Or_Not_B (RF 1) WR)
       testOperation "!A or B" rfP wrP "!РОН1илиРР" (Not_A_Or_B (RF 1) WR)
       testOperation "A or B" rfP wrP "RF7 или WR" (A_Or_B (RF 7) WR)
+
+  describe "control statements" $ do
+    it "parses 'if' statement without 'else' branch" $
+      parse controlStatementP "" "if ALUCOUT then label1"
+        `shouldParse` ControlStatement_If
+          Condition_ALUCOUT
+          (Location_Label "label1")
+          Nothing
+    it "parses 'if' statement with 'else' branch" $
+      parse controlStatementP "" "if ALUCOUT then label1 else label2"
+        `shouldParse` ControlStatement_If
+          Condition_ALUCOUT
+          (Location_Label "label1")
+          (Just $ Location_Label "label2")
+    it "parses 'if' statement with numeric addresses" $
+      parse controlStatementP "" "если !СДП2 то 10 иначе 20"
+        `shouldParse` ControlStatement_If
+          Condition_Not_XWRRT
+          (Location_Address 10)
+          (Just $ Location_Address 20)
+    it "fails to parse 'if' statement with an invalid condition" $
+      parse controlStatementP "" `shouldFailOn` "if BadCondition then label1"
+    it "fails to parse 'if' statement with an invalid address" $
+      parse controlStatementP "" `shouldFailOn` "if ALUCOUT then 2000"
+    it "parses 'goto' statement" $
+      parse controlStatementP "" "goto label"
+        `shouldParse` ControlStatement_Goto (Location_Label "label")
+    it "parses 'goto' statement with a numeric address" $
+      parse controlStatementP "" "goto 10"
+        `shouldParse` ControlStatement_Goto (Location_Address 10)
+    it "parses 'input' statement with a 16-digit binary number" $
+      parse controlStatementP "" "input 0001001000110100"
+        `shouldParse` ControlStatement_Input 0x1234
+    it "parses 'input' statement with a 4x4-digit binary number" $
+      parse controlStatementP "" "input 0001 0010 0011 0100"
+        `shouldParse` ControlStatement_Input 0x1234
+    it "parses 'input' statement with a positive decimal number" $
+      parse controlStatementP "" "ввод 1234"
+        `shouldParse` ControlStatement_Input 1234
+    it "parses 'input' statement with a negative decimal number" $
+      parse controlStatementP "" "ввод -1234"
+        `shouldParse` ControlStatement_Input 64302 -- two's complement
+    it "fails to parse 'input' statement with an invalid decimal number" $
+      parse controlStatementP "" `shouldFailOn` "input 100500"
+    it "parses 'input' statement with a hexadecimal number" $
+      parse controlStatementP "" "input 0X789"
+        `shouldParse` ControlStatement_Input 0x789
+    it "fails to parse 'input' statement with an invalid hexadecimal number" $
+      parse controlStatementP "" `shouldFailOn` "input 0xdeadbeef"
   where
     testInstruction name input output =
       it ("parses an instruction '" ++ name ++ "'") $
