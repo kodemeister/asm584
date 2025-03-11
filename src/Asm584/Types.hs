@@ -154,6 +154,9 @@ data Tok
   | ASL
   | RSR
   | RSL
+  | -- Special keywords.
+    NOP
+  | Break
   | -- Control flow statements.
     If
   | Then

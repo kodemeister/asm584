@@ -130,6 +130,12 @@ rsrP = RSR <$ oneOfSymbols' ["RSR", "СЦП"]
 rslP :: Parser Tok
 rslP = RSL <$ oneOfSymbols' ["RSL", "СЦЛ"]
 
+nopP :: Parser Tok
+nopP = NOP <$ oneOfSymbols' ["NOP", "НОП", "<ПУСТО>"]
+
+breakP :: Parser Tok
+breakP = Break <$ oneOfSymbols' ["break", "останов"]
+
 ifP :: Parser Tok
 ifP = If <$ oneOfSymbols' ["if", "если"]
 
@@ -196,6 +202,8 @@ tokenP ASR = asrP
 tokenP ASL = aslP
 tokenP RSR = rsrP
 tokenP RSL = rslP
+tokenP NOP = nopP
+tokenP Break = breakP
 tokenP If = ifP
 tokenP Then = thenP
 tokenP Else = elseP
