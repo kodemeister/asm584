@@ -57,6 +57,52 @@ data Instruction
   | XWR_Assign_DI_Op_WR Operation
   | XWR_Assign_DI_Op_XWR Operation
   | DO_Assign_DI_Op_XWR Operation
+  | -- Group 2: addition instructions.
+    XWR_Assign_RF_Plus_WR_Plus_ALUCIN RFNumber
+  | WR_Assign_RF_Plus_DI_Plus_ALUCIN RFNumber
+  | XWR_Assign_RF_Plus_DI_Plus_ALUCIN RFNumber
+  | RF_Assign_RF_Plus_DI_Plus_ALUCIN RFNumber
+  | XWR_Assign_RF_Plus_XWR_Plus_ALUCIN RFNumber
+  | WR_Assign_RF_Plus_XWR_Plus_ALUCIN RFNumber
+  | RF_Assign_XWR_Plus_ALUCIN RFNumber
+  | XWR_Assign_DI_Plus_WR_Plus_ALUCIN
+  | DO_Assign_DI_Plus_WR_Plus_ALUCIN
+  | WR_Assign_DI_Plus_XWR_Plus_ALUCIN
+  | XWR_Assign_DI_Plus_XWR_Plus_ALUCIN
+  | DO_Assign_XWR_Plus_ALUCIN
+  | -- Group 3: move instructions.
+    RF_Assign_DI RFNumber
+  | DO_Assign_RF RFNumber
+  | XWR_Assign_RF RFNumber
+  | WR_Assign_DI
+  | XWR_Assign_DI
+  | DO_Assign_DI
+  | -- Group 4: double-precision shift/arithmetic instructions.
+    WRXWR_Assign_RSL_WR_Minus_DI_Minus_One_Plus_ALUCIN
+  | WRXWR_Assign_RSL_WR_Plus_DI_Plus_ALUCIN
+  | WRXWR_Assign_RSL_WR_Minus_RF_Minus_One_Plus_ALUCIN RFNumber
+  | WRXWR_Assign_RSL_WR_Plus_RF_Plus_ALUCIN RFNumber
+  | WRXWR_Assign_ASR_WR_Plus_ALUCIN
+  | WRXWR_Assign_ASR_WR_Minus_DI_Minus_One_Plus_ALUCIN
+  | WRXWR_Assign_ASR_WR_Plus_DI_Plus_ALUCIN
+  | WRXWR_Assign_ASR_WR_Minus_RF_Minus_One_Plus_ALUCIN RFNumber
+  | WRXWR_Assign_ASR_WR_Plus_RF_Plus_ALUCIN RFNumber
+  | -- Group 5: single-precision shift instructions.
+    WR_Assign_ASR_WR_Plus_ALUCIN
+  | WR_Assign_RSR_WR_Plus_ALUCIN
+  | WR_Assign_ASL_WR_Plus_ALUCIN
+  | WR_Assign_RSL_WR_Plus_ALUCIN
+  | WR_Assign_LSR_WR_Plus_ALUCIN
+  | WR_Assign_LSL_WR_Plus_ALUCIN
+  | -- Group 6: double-precision shift instructions.
+    WRXWR_Assign_ASR_WRXWR_Plus_ALUCIN
+  | WRXWR_Assign_RSR_WRXWR_Plus_ALUCIN
+  | WRXWR_Assign_ASL_WRXWR_Plus_ALUCIN
+  | WRXWR_Assign_RSL_WRXWR_Plus_ALUCIN
+  | WRXWR_Assign_LSR_WRXWR_Plus_ALUCIN
+  | WRXWR_Assign_LSL_WRXWR_Plus_ALUCIN
+  | -- Special instructions.
+    No_Operation
   deriving (Eq, Show)
 
 data Operation
