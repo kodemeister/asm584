@@ -24,10 +24,57 @@ import Asm584.Parser
 import Asm584.Types
 import Test.Hspec
 import Test.Hspec.Megaparsec
-import Text.Megaparsec
+import Text.Megaparsec hiding (label)
 
 spec_parser :: Spec
 spec_parser = do
+  describe "statements" $ do
+    testStatement
+      "with a single instruction"
+      "DO := DI"
+      defStatement
+    testStatement
+      "with a label"
+      "my_label: DO := DI"
+      defStatement {label = Just "my_label"}
+    testStatement
+      "with a breakpoint"
+      "break DO := DI"
+      defStatement {breakpoint = True}
+    testStatement
+      "with a value of ALUCIN"
+      "DO := XWR + C (C=1)"
+      defStatement
+        { instruction = DO_Assign_XWR_Plus_ALUCIN,
+          alucinValue = Just True
+        }
+    it "fails to parse a statement if a value of ALUCIN is missing" $
+      parse statementP "" `shouldFailOn` "DO := XWR + C"
+    testStatement
+      "with a control statement"
+      "DO := DI goto 10"
+      defStatement
+        { controlStatement = Just $ ControlStatement_Goto (Location_Address 10)
+        }
+    testStatement
+      "with a comment"
+      "DO := DI ; Comment"
+      defStatement {comment = Just " Comment"}
+    testStatement
+      "with a control statement followed by a comment"
+      "DO := DI\ngoto 20\n; My Comment"
+      defStatement
+        { controlStatement = Just $ ControlStatement_Goto (Location_Address 20),
+          comment = Just " My Comment"
+        }
+    testStatement
+      "with a comment followed by a control statement"
+      "DO := DI\n; My Comment\ngoto 30"
+      defStatement
+        { controlStatement = Just $ ControlStatement_Goto (Location_Address 30),
+          comment = Just " My Comment"
+        }
+
   describe "labels" $ do
     it "parses a label" $
       parse labelP "" "label_2: RF0 := DI" `shouldParse` "label_2"
@@ -307,6 +354,12 @@ spec_parser = do
     it "fails to parse 'input' statement with an invalid hexadecimal number" $
       parse controlStatementP "" `shouldFailOn` "input 0xdeadbeef"
   where
+    testStatement name input output =
+      it ("parses a statement " ++ name) $
+        parse statementP "" input `shouldParse` output
+
+    defStatement = Statement Nothing False DO_Assign_DI Nothing Nothing Nothing
+
     testInstruction name input output =
       it ("parses an instruction '" ++ name ++ "'") $
         parse instructionP "" input `shouldParse` output

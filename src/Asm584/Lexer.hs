@@ -231,7 +231,7 @@ identifierP =
 commentP :: Parser Text
 commentP =
   lexeme $
-    (satisfy isCommentChar <?> "comment character")
+    (satisfy isCommentChar <?> "comment")
       *> takeWhileP (Just "any character except newline") isNotNewline
   where
     isCommentChar c = c == ';' || c == '#'

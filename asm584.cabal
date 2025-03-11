@@ -24,6 +24,7 @@ common dependencies
     build-depends:
         base >=4.17.2.1 && <5,
         containers >=0.6 && <0.8,
+        extra ^>=1.8,
         megaparsec ^>=9.7.0,
         text ^>=2.1.2
 

@@ -36,12 +36,11 @@ type Address = Int
 -- | Register number in the range [0, 7].
 type RFNumber = Int
 
--- | Value of ALUCIN specified after the instruction (ALUCIN=0 or ALUCIN=1).
-type ALUCINValue = Bool
-
 data Statement = Statement
   { label :: Maybe Label,
+    breakpoint :: Bool,
     instruction :: Instruction,
+    alucinValue :: Maybe Bool,
     controlStatement :: Maybe ControlStatement,
     comment :: Maybe Text
   }
@@ -103,7 +102,7 @@ data Instruction
   | WRXWR_Assign_LSL_WRXWR_Plus_ALUCIN
   | -- Special instructions.
     No_Operation
-  deriving (Eq, Show)
+  deriving (Eq, Ord, Show)
 
 data Operation
   = -- Arithmetic operations.
@@ -124,7 +123,7 @@ data Operation
   | A_Or_Not_B
   | Not_A_Or_B
   | A_Or_B
-  deriving (Eq, Show)
+  deriving (Eq, Ord, Show)
 
 data ControlStatement
   = ControlStatement_If Condition Location (Maybe Location)

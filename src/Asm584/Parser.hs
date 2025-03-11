@@ -16,19 +16,32 @@
  - You should have received a copy of the GNU Lesser General Public License
  - along with asm584. If not, see <https://www.gnu.org/licenses/>.
  -}
+{-# LANGUAGE RecordWildCards #-}
 
 module Asm584.Parser where
 
 import Asm584.Lexer
 import Asm584.Types
+import Control.Monad.Extra (whenMaybe)
 import Data.Functor
 import qualified Data.Map as Map
 import Data.Maybe
+import Data.Set (Set)
+import qualified Data.Set as Set
 import Data.Word
-import Text.Megaparsec
+import Text.Megaparsec hiding (label)
 import Text.Megaparsec.Char
 
 -- *** Parsers *** --
+
+statementP :: Parser Statement
+statementP = do
+  label <- optional $ try labelP
+  breakpoint <- isJust <$> optional breakpointP
+  instruction <- instructionP
+  alucinValue <- whenMaybe (hasAlucin instruction) alucinValueP
+  (controlStatement, comment) <- optionalPair controlStatementP commentP
+  pure Statement {..}
 
 -- | Parses a label (an identifier followed by colon character).
 -- Properly disambiguates labels from destination operands followed by
@@ -36,6 +49,9 @@ import Text.Megaparsec.Char
 -- string "RF0:=DI".
 labelP :: Parser Label
 labelP = (identifierP <?> "label") <* notFollowedBy assignP <* colonP
+
+breakpointP :: Parser Tok
+breakpointP = breakP <?> "breakpoint"
 
 -- | Parses an instruction. The parser is automatically built from the list of
 -- all possible instructions.
@@ -46,13 +62,15 @@ labelP = (identifierP <?> "label") <* notFollowedBy assignP <* colonP
 -- operation "A + B + ALUCIN" and instruction #16. The parser will choose the
 -- latter one.
 instructionP :: Parser Instruction
-instructionP = buildParser $ reverse instructions
+instructionP = buildParser (reverse instructions) <?> "microinstruction"
 
 operationP :: Tok -> Tok -> Parser Operation
 operationP a b = buildParser $ operations a b
 
-alucinValueP :: Parser ALUCINValue
-alucinValueP = parens (alucinP *> equalP *> (zeroP <|> oneP)) <&> (== One)
+alucinValueP :: Parser Bool
+alucinValueP =
+  parens (alucinP *> equalP *> (zeroP <|> oneP)) <&> (== One)
+    <?> "value of ALUCIN"
 
 controlStatementP :: Parser ControlStatement
 controlStatementP =
@@ -66,6 +84,7 @@ controlStatementP =
       ControlStatement_Goto <$ gotoP <*> locationP,
       ControlStatement_Input <$ inputP <*> inputValueP
     ]
+    <?> "control statement"
 
 conditionP :: Parser Condition
 conditionP =
@@ -86,6 +105,7 @@ conditionP =
       Condition_AMSB <$ amsbP,
       Condition_BMSB <$ bmsbP
     ]
+    <?> "condition"
 
 locationP :: Parser Location
 locationP =
@@ -107,6 +127,7 @@ inputValueP =
       fromInteger <$> valueInRange (0, 65535) hexadecimal,
       fromInteger <$> valueInRange (-32768, 65535) (signed decimal)
     ]
+    <?> "16-bit binary, decimal or hexadecimal number"
 
 -- *** Parser builder *** --
 
@@ -136,6 +157,13 @@ buildParser = choice . map sequenceP . groupSequences . map splitSequence
     sequenceP (Just tok, tss) = tokenP tok *> buildParser tss
     sequenceP (Nothing, ([], a) : _) = pure a
     sequenceP (Nothing, _) = empty
+
+hasAlucin :: Instruction -> Bool
+hasAlucin instr = instr `Set.member` instructionsWithAlucin
+
+instructionsWithAlucin :: Set Instruction
+instructionsWithAlucin =
+  Set.fromList [instr | (ts, instr) <- instructions, ALUCIN `elem` ts]
 
 instructions :: [(TokenSequence, Instruction)]
 instructions =
@@ -323,6 +351,15 @@ maxInstructions = 1024
 
 parens :: Parser a -> Parser a
 parens = between openParenP closeParenP
+
+-- | Parses a pair of optional values that can appear in any order.
+optionalPair :: Parser a -> Parser b -> Parser (Maybe a, Maybe b)
+optionalPair a b =
+  choice
+    [ (,) . Just <$> a <*> optional b,
+      flip (,) . Just <$> b <*> optional a,
+      pure (Nothing, Nothing)
+    ]
 
 valueInRange :: (Ord a, Show a) => (a, a) -> Parser a -> Parser a
 valueInRange (min', max') p = do
