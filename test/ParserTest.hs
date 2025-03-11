@@ -20,7 +20,6 @@
 
 module ParserTest where
 
-import Asm584.Lexer
 import Asm584.Parser
 import Asm584.Types
 import Test.Hspec
@@ -42,96 +41,71 @@ spec_parser = do
       testInstruction
         "RF := RF op WR"
         "RF2 := RF2 and WR"
-        (RF_Assign_RF_Op_WR $ A_And_B (RF 2) WR)
+        (RF_Assign_RF_Op_WR A_And_B 2)
       testInstruction
         "WR := RF op WR"
         "РР := !РОН5 или РР"
-        (WR_Assign_RF_Op_WR $ Not_A_Or_B (RF 5) WR)
+        (WR_Assign_RF_Op_WR Not_A_Or_B 5)
       testInstruction
         "DO := DI op WR"
-        "DO := WR - DI - 1 + C (C=1)"
-        (DO_Assign_DI_Op_WR $ B_Minus_A_Minus_One_Plus_ALUCIN DI WR True)
+        "DO := WR - DI - 1 + C"
+        (DO_Assign_DI_Op_WR B_Minus_A_Minus_One_Plus_ALUCIN)
       testInstruction
         "WR := DI op WR"
-        "WR=DI-WR-1+C(C=0)"
-        (WR_Assign_DI_Op_WR $ A_Minus_B_Minus_One_Plus_ALUCIN DI WR False)
+        "WR=DI-WR-1+C"
+        (WR_Assign_DI_Op_WR A_Minus_B_Minus_One_Plus_ALUCIN)
       testInstruction
         "WR := DI op XWR"
-        "РР=ШИНвх+РРР+П(П=0)"
-        (WR_Assign_DI_Op_XWR $ A_Plus_B_Plus_ALUCIN DI XWR False)
+        "РР=ШИНвхили!РРР"
+        (WR_Assign_DI_Op_XWR A_Or_Not_B)
       testInstruction
         "XWR := DI op WR"
-        "xwr := di + alucin ( alucin = 1 )"
-        (XWR_Assign_DI_Op_WR $ A_Plus_ALUCIN DI True)
+        "xwr := wr + alucin"
+        (XWR_Assign_DI_Op_WR B_Plus_ALUCIN)
       testInstruction
         "XWR := DI op XWR"
-        "ррр := !ррр + п ( п = 1 )"
-        (XWR_Assign_DI_Op_XWR $ Not_B_Plus_ALUCIN XWR True)
+        "ррр := !ррр + п"
+        (XWR_Assign_DI_Op_XWR Not_B_Plus_ALUCIN)
       testInstruction
         "DO := DI op XWR"
         "DO := !(DI xor XWR)"
-        (DO_Assign_DI_Op_XWR $ A_Xnor_B DI XWR)
+        (DO_Assign_DI_Op_XWR A_Xnor_B)
 
   describe "operations" $ do
     describe "arithmetic" $ do
-      testOperation
-        "!ALUCIN"
-        empty
-        empty
-        "!ALUCIN (ALUCIN=0)"
-        (Not_ALUCIN False)
+      testOperation "!ALUCIN" DI WR "!ALUCIN" Not_ALUCIN
       testOperation
         "B - A - 1 + ALUCIN"
-        diP
-        wrP
-        "WR - DI - 1 + C (C=1)"
-        (B_Minus_A_Minus_One_Plus_ALUCIN DI WR True)
+        DI
+        WR
+        "WR - DI - 1 + C"
+        B_Minus_A_Minus_One_Plus_ALUCIN
       testOperation
         "A - B - 1 + ALUCIN"
-        diP
-        wrP
-        "DI - WR - 1 + C (C=1)"
-        (A_Minus_B_Minus_One_Plus_ALUCIN DI WR True)
+        DI
+        WR
+        "DI - WR - 1 + C"
+        A_Minus_B_Minus_One_Plus_ALUCIN
       testOperation
         "A + B + ALUCIN"
-        rfP
-        wrP
-        "рон6 + рр + п (п=0)"
-        (A_Plus_B_Plus_ALUCIN (RF 6) WR False)
-      testOperation
-        "B + ALUCIN"
-        empty
-        xwrP
-        "XWR+C(ALUCIN=0)"
-        (B_Plus_ALUCIN XWR False)
-      testOperation
-        "!B + ALUCIN"
-        empty
-        xwrP
-        "!XWR+C(ALUCIN=0)"
-        (Not_B_Plus_ALUCIN XWR False)
-      testOperation
-        "A + ALUCIN"
-        (rfWithNumberP 0)
-        empty
-        "RF0  +  C  ( C = 1 )  "
-        (A_Plus_ALUCIN (RF 0) True)
-      testOperation
-        "!A + ALUCIN"
-        (rfWithNumberP 0)
-        empty
-        "!  RF0  +  C  ( C = 1 )  "
-        (Not_A_Plus_ALUCIN (RF 0) True)
+        (RF 6)
+        WR
+        "рон6 + рр + п"
+        A_Plus_B_Plus_ALUCIN
+      testOperation "B + ALUCIN" DI XWR "XWR+C" B_Plus_ALUCIN
+      testOperation "!B + ALUCIN" DI XWR "!XWR+C" Not_B_Plus_ALUCIN
+      testOperation "A + ALUCIN" (RF 0) WR "RF0  +  C  " A_Plus_ALUCIN
+      testOperation "!A + ALUCIN" (RF 0) WR "!  RF0  +  C  " Not_A_Plus_ALUCIN
 
     describe "logical" $ do
-      testOperation "A and B" diP wrP "DI and WR" (A_And_B DI WR)
-      testOperation "A xor B" diP xwrP "DI xor XWR" (A_Xor_B DI XWR)
-      testOperation "!(A xor B)" diP xwrP "!(DI xor XWR)" (A_Xnor_B DI XWR)
-      testOperation "!A and B" diP wrP "!DIandWR" (Not_A_And_B DI WR)
-      testOperation "A and !B" diP wrP "DIand!WR" (A_And_Not_B DI WR)
-      testOperation "A or !B" rfP wrP "РОН1или!РР" (A_Or_Not_B (RF 1) WR)
-      testOperation "!A or B" rfP wrP "!РОН1илиРР" (Not_A_Or_B (RF 1) WR)
-      testOperation "A or B" rfP wrP "RF7 или WR" (A_Or_B (RF 7) WR)
+      testOperation "A and B" DI WR "DI and WR" A_And_B
+      testOperation "A xor B" DI XWR "DI xor XWR" A_Xor_B
+      testOperation "!(A xor B)" DI XWR "!(DI xor XWR)" A_Xnor_B
+      testOperation "!A and B" DI WR "!DIandWR" Not_A_And_B
+      testOperation "A and !B" DI WR "DIand!WR" A_And_Not_B
+      testOperation "A or !B" (RF 1) WR "РОН1или!РР" A_Or_Not_B
+      testOperation "!A or B" (RF 1) WR "!РОН1илиРР" Not_A_Or_B
+      testOperation "A or B" (RF 7) WR "RF7 или WR" A_Or_B
 
   describe "control statements" $ do
     it "parses 'if' statement without 'else' branch" $

@@ -22,6 +22,8 @@ module Asm584.Parser where
 import Asm584.Lexer
 import Asm584.Types
 import Data.Functor
+import qualified Data.Map as Map
+import Data.Maybe
 import Data.Word
 import Text.Megaparsec
 import Text.Megaparsec.Char
@@ -35,68 +37,19 @@ import Text.Megaparsec.Char
 labelP :: Parser Label
 labelP = (identifierP <?> "label") <* notFollowedBy assignP <* colonP
 
+-- | Parses an instruction. The parser is automatically built from the list of
+-- all possible instructions.
+--
+-- NOTE: We reverse the list of instructions before building so that the parser
+-- prefers the last matching instruction in case of ambiguity. For instance, the
+-- instruction "XWR := DI + WR + ALUCIN" matches both instruction #6 with
+-- operation "A + B + ALUCIN" and instruction #16. The parser will choose the
+-- latter one.
 instructionP :: Parser Instruction
-instructionP =
-  choice'
-    [ -- Group 1: arithmetic/logical instructions.
-      do
-        RF n <- rfP
-        _ <- assignP
-        op <- operationP (rfWithNumberP n) wrP
-        pure $ RF_Assign_RF_Op_WR op,
-      WR_Assign_RF_Op_WR <$ wrP <* assignP <*> operationP rfP wrP,
-      DO_Assign_DI_Op_WR <$ doP <* assignP <*> operationP diP wrP,
-      WR_Assign_DI_Op_WR <$ wrP <* assignP <*> operationP diP wrP,
-      WR_Assign_DI_Op_XWR <$ wrP <* assignP <*> operationP diP xwrP,
-      XWR_Assign_DI_Op_WR <$ xwrP <* assignP <*> operationP diP wrP,
-      XWR_Assign_DI_Op_XWR <$ xwrP <* assignP <*> operationP diP xwrP,
-      DO_Assign_DI_Op_XWR <$ doP <* assignP <*> operationP diP xwrP
-    ]
+instructionP = buildParser $ reverse instructions
 
-operationP :: Parser Tok -> Parser Tok -> Parser Operation
-operationP a b =
-  choice'
-    [ -- Arithmetic operations.
-      Not_ALUCIN <$ notP <* alucinP <*> alucinValueP,
-      flip B_Minus_A_Minus_One_Plus_ALUCIN
-        <$> b
-        <* minusP
-        <*> a
-        <* minusP
-        <* oneP
-        <* plusP
-        <* alucinP
-        <*> alucinValueP,
-      A_Minus_B_Minus_One_Plus_ALUCIN
-        <$> a
-        <* minusP
-        <*> b
-        <* minusP
-        <* oneP
-        <* plusP
-        <* alucinP
-        <*> alucinValueP,
-      A_Plus_B_Plus_ALUCIN
-        <$> a
-        <* plusP
-        <*> b
-        <* plusP
-        <* alucinP
-        <*> alucinValueP,
-      B_Plus_ALUCIN <$> b <* plusP <* alucinP <*> alucinValueP,
-      Not_B_Plus_ALUCIN <$ notP <*> b <* plusP <* alucinP <*> alucinValueP,
-      A_Plus_ALUCIN <$> a <* plusP <* alucinP <*> alucinValueP,
-      Not_A_Plus_ALUCIN <$ notP <*> a <* plusP <* alucinP <*> alucinValueP,
-      -- Logical operations.
-      A_And_B <$> a <* andP <*> b,
-      A_Xor_B <$> a <* xorP <*> b,
-      notP *> parens (A_Xnor_B <$> a <* xorP <*> b),
-      Not_A_And_B <$ notP <*> a <* andP <*> b,
-      A_And_Not_B <$> a <* andP <* notP <*> b,
-      A_Or_Not_B <$> a <* orP <* notP <*> b,
-      Not_A_Or_B <$ notP <*> a <* orP <*> b,
-      A_Or_B <$> a <* orP <*> b
-    ]
+operationP :: Tok -> Tok -> Parser Operation
+operationP a b = buildParser $ operations a b
 
 alucinValueP :: Parser ALUCINValue
 alucinValueP = parens (alucinP *> equalP *> (zeroP <|> oneP)) <&> (== One)
@@ -116,15 +69,18 @@ controlStatementP =
 
 conditionP :: Parser Condition
 conditionP =
-  choice'
+  choice
     [ Condition_ALUCOUT <$ alucoutP,
       Condition_ALUCOUT0 <$ alucout0P,
       Condition_ALUCOUT1 <$ alucout1P,
       Condition_ALUCOUT2 <$ alucout2P,
-      Condition_Not_WRRT <$ notP <* wrrtP,
-      Condition_Not_WRLFT <$ notP <* wrlftP,
-      Condition_Not_XWRRT <$ notP <* xwrrtP,
-      Condition_Not_XWRLFT <$ notP <* xwrlftP,
+      notP
+        *> choice
+          [ Condition_Not_WRRT <$ wrrtP,
+            Condition_Not_WRLFT <$ wrlftP,
+            Condition_Not_XWRRT <$ xwrrtP,
+            Condition_Not_XWRLFT <$ xwrlftP
+          ],
       Condition_XWR0 <$ xwr0P,
       Condition_XWR3 <$ xwr3P,
       Condition_AMSB <$ amsbP,
@@ -152,6 +108,91 @@ inputValueP =
       fromInteger <$> valueInRange (-32768, 65535) (signed decimal)
     ]
 
+-- *** Parser builder *** --
+
+-- | Builds a parser from an association list of token sequences. The resulting
+-- parser will match the input stream against all token sequences and return the
+-- associated value "a" if it finds any matching sequence.
+--
+-- The function basically performs the following steps:
+-- 1. Splits each token sequence into the first token and the rest of sequence.
+-- 2. Groups all sequences by their first token (i.e. by the common prefix).
+-- 3. For each group it builds a parser that accepts the first token and then
+--    recursively parses the rest of sequences.
+-- 4. Combines all group parsers via 'choice' combinator.
+buildParser :: [(TokenSequence, a)] -> Parser a
+buildParser = choice . map sequenceP . groupSequences . map splitSequence
+  where
+    splitSequence (ts, a) = (listToMaybe ts, [(drop 1 ts, a)])
+
+    -- NOTE: We sort groups by their first token in the descending order so that
+    -- (Just tok) keys come first and Nothing key comes last. This implements
+    -- the "maximal munch" rule when the parser tries to consume as much tokens
+    -- as possible before finishing parsing and returning the resulting value at
+    -- Nothing key. We also preserve the original order of token sequences in
+    -- each group.
+    groupSequences = Map.toDescList . Map.fromListWith (++) . reverse
+
+    sequenceP (Just tok, tss) = tokenP tok *> buildParser tss
+    sequenceP (Nothing, ([], a) : _) = pure a
+    sequenceP (Nothing, _) = empty
+
+instructions :: [(TokenSequence, Instruction)]
+instructions =
+  concat
+    [ -- Group 1: arithmetic/logical instructions.
+      [ ([RF n, Assign] ++ ts, RF_Assign_RF_Op_WR op n)
+        | n <- rfNumbers,
+          (ts, op) <- operations (RF n) WR
+      ],
+      [ ([WR, Assign] ++ ts, WR_Assign_RF_Op_WR op n)
+        | n <- rfNumbers,
+          (ts, op) <- operations (RF n) WR
+      ],
+      [ ([DO, Assign] ++ ts, DO_Assign_DI_Op_WR op)
+        | (ts, op) <- operations DI WR
+      ],
+      [ ([WR, Assign] ++ ts, WR_Assign_DI_Op_WR op)
+        | (ts, op) <- operations DI WR
+      ],
+      [ ([WR, Assign] ++ ts, WR_Assign_DI_Op_XWR op)
+        | (ts, op) <- operations DI XWR
+      ],
+      [ ([XWR, Assign] ++ ts, XWR_Assign_DI_Op_WR op)
+        | (ts, op) <- operations DI WR
+      ],
+      [ ([XWR, Assign] ++ ts, XWR_Assign_DI_Op_XWR op)
+        | (ts, op) <- operations DI XWR
+      ],
+      [ ([DO, Assign] ++ ts, DO_Assign_DI_Op_XWR op)
+        | (ts, op) <- operations DI XWR
+      ]
+    ]
+  where
+    rfNumbers = [0 .. 7]
+
+operations :: Tok -> Tok -> [(TokenSequence, Operation)]
+operations a b =
+  [ -- Arithmetic operations.
+    ([Not, ALUCIN], Not_ALUCIN),
+    ([b, Minus, a, Minus, One, Plus, ALUCIN], B_Minus_A_Minus_One_Plus_ALUCIN),
+    ([a, Minus, b, Minus, One, Plus, ALUCIN], A_Minus_B_Minus_One_Plus_ALUCIN),
+    ([a, Plus, b, Plus, ALUCIN], A_Plus_B_Plus_ALUCIN),
+    ([b, Plus, ALUCIN], B_Plus_ALUCIN),
+    ([Not, b, Plus, ALUCIN], Not_B_Plus_ALUCIN),
+    ([a, Plus, ALUCIN], A_Plus_ALUCIN),
+    ([Not, a, Plus, ALUCIN], Not_A_Plus_ALUCIN),
+    -- Logical operations.
+    ([a, And, b], A_And_B),
+    ([a, Xor, b], A_Xor_B),
+    ([Not, OpenParen, a, Xor, b, CloseParen], A_Xnor_B),
+    ([Not, a, And, b], Not_A_And_B),
+    ([a, And, Not, b], A_And_Not_B),
+    ([a, Or, Not, b], A_Or_Not_B),
+    ([Not, a, Or, b], Not_A_Or_B),
+    ([a, Or, b], A_Or_B)
+  ]
+
 -- *** Utilities *** --
 
 maxInstructions :: (Num a) => a
@@ -160,14 +201,11 @@ maxInstructions = 1024
 parens :: Parser a -> Parser a
 parens = between openParenP closeParenP
 
--- | Backtracking version of 'choice'. If the current parser fails, it rolls
--- back the parser state before trying the next alternative.
-choice' :: [Parser a] -> Parser a
-choice' = choice . map try
-
 valueInRange :: (Ord a, Show a) => (a, a) -> Parser a -> Parser a
 valueInRange (min', max') p = do
   value <- p
   if value >= min' && value <= max'
     then pure value
-    else fail $ "value is out of range " ++ show min' ++ "-" ++ show max'
+    else fail $ "value is out of range " ++ range
+  where
+    range = "[" ++ show min' ++ ", " ++ show max' ++ "]"

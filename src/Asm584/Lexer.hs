@@ -23,6 +23,7 @@ module Asm584.Lexer where
 import Asm584.Types
 import Data.Char
 import Data.Foldable
+import Data.Functor
 import Data.Text (Text)
 import qualified Data.Text as T
 import Text.Megaparsec
@@ -37,20 +38,10 @@ wrP = WR <$ oneOfSymbols' ["WR", "РР"]
 xwrP :: Parser Tok
 xwrP = XWR <$ oneOfSymbols' ["XWR", "РРР"]
 
--- | Parses a register name and returns its number.
-rfP :: Parser Tok
-rfP = RF <$ rfStringP <*> rfNumberP
-  where
-    rfStringP = choice [string' "RF", string' "РОН"]
-    rfNumberP = digitToInt <$> lexeme (satisfy isOctDigit <?> "register number")
-
--- | Parses a register name with the given number.
-rfWithNumberP :: RFNumber -> Parser Tok
-rfWithNumberP n
-  | n >= 0 && n <= 7 = RF n <$ rfStringP <* lexeme (char $ intToDigit n)
+rfP :: RFNumber -> Parser Tok
+rfP n
+  | n >= 0 && n <= 7 = RF n <$ oneOfSymbols' (["RF", "РОН"] <&> (<> T.show n))
   | otherwise = error "invalid register number"
-  where
-    rfStringP = choice [string' "RF", string' "РОН"]
 
 diP :: Parser Tok
 diP = DI <$ oneOfSymbols' ["DI", "ШИНвх", "ШВх"]
@@ -171,6 +162,51 @@ commaP = Comma <$ symbol ","
 
 colonP :: Parser Tok
 colonP = Colon <$ symbol ":"
+
+tokenP :: Tok -> Parser Tok
+tokenP WR = wrP
+tokenP XWR = xwrP
+tokenP (RF n) = rfP n
+tokenP DI = diP
+tokenP DO = doP
+tokenP ALUCIN = alucinP
+tokenP ALUCOUT = alucoutP
+tokenP ALUCOUT0 = alucout0P
+tokenP ALUCOUT1 = alucout1P
+tokenP ALUCOUT2 = alucout2P
+tokenP WRRT = wrrtP
+tokenP WRLFT = wrlftP
+tokenP XWRRT = xwrrtP
+tokenP XWRLFT = xwrlftP
+tokenP XWR0 = xwr0P
+tokenP XWR3 = xwr3P
+tokenP AMSB = amsbP
+tokenP BMSB = bmsbP
+tokenP Plus = plusP
+tokenP Minus = minusP
+tokenP Zero = zeroP
+tokenP One = oneP
+tokenP And = andP
+tokenP Or = orP
+tokenP Xor = xorP
+tokenP Not = notP
+tokenP LSR = lsrP
+tokenP LSL = lslP
+tokenP ASR = asrP
+tokenP ASL = aslP
+tokenP RSR = rsrP
+tokenP RSL = rslP
+tokenP If = ifP
+tokenP Then = thenP
+tokenP Else = elseP
+tokenP Goto = gotoP
+tokenP Input = inputP
+tokenP Assign = assignP
+tokenP Equal = equalP
+tokenP OpenParen = openParenP
+tokenP CloseParen = closeParenP
+tokenP Comma = commaP
+tokenP Colon = colonP
 
 -- *** Utilities *** --
 

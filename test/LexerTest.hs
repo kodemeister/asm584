@@ -38,14 +38,10 @@ spec_lexer = do
     it "skips trailing whitespaces after a token" $
       parse ((,) <$> diP <*> doP <* eof) "" "DI \r\n\t DO \r\n"
         `shouldParse` (DI, DO)
-    it "parses a register with valid number" $
-      parse rfP "" "RF5" `shouldParse` RF 5
-    it "fails to parse a register with invalid number" $
-      parse rfP "" `shouldFailOn` "RF8"
     it "parses a register with the given number" $
-      parse (rfWithNumberP 2) "" "RF2" `shouldParse` RF 2
+      parse (rfP 2) "" "RF2" `shouldParse` RF 2
     it "fails to parse a register with unexpected number" $
-      parse (rfWithNumberP 2) "" `shouldFailOn` "RF3"
+      parse (rfP 2) "" `shouldFailOn` "RF3"
 
   describe "identifiers" $ do
     it "parses an identifier" $

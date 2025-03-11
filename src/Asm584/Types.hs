@@ -24,16 +24,16 @@ import Data.Void
 import Data.Word
 import Text.Megaparsec
 
-type Parser = Parsec Void Text
+-- *** Assembly code representation *** --
 
 type Program = [Statement]
 
 type Label = Text
 
--- | Instruction address (0-1023).
+-- | Instruction address in the range [0, 1023].
 type Address = Int
 
--- | Register number (0-7).
+-- | Register number in the range [0, 7].
 type RFNumber = Int
 
 -- | Value of ALUCIN specified after the instruction (ALUCIN=0 or ALUCIN=1).
@@ -49,8 +49,8 @@ data Statement = Statement
 
 data Instruction
   = -- Group 1: arithmetic/logical instructions.
-    RF_Assign_RF_Op_WR Operation
-  | WR_Assign_RF_Op_WR Operation
+    RF_Assign_RF_Op_WR Operation RFNumber
+  | WR_Assign_RF_Op_WR Operation RFNumber
   | DO_Assign_DI_Op_WR Operation
   | WR_Assign_DI_Op_WR Operation
   | WR_Assign_DI_Op_XWR Operation
@@ -61,23 +61,23 @@ data Instruction
 
 data Operation
   = -- Arithmetic operations.
-    Not_ALUCIN ALUCINValue
-  | B_Minus_A_Minus_One_Plus_ALUCIN Tok Tok ALUCINValue
-  | A_Minus_B_Minus_One_Plus_ALUCIN Tok Tok ALUCINValue
-  | A_Plus_B_Plus_ALUCIN Tok Tok ALUCINValue
-  | B_Plus_ALUCIN Tok ALUCINValue
-  | Not_B_Plus_ALUCIN Tok ALUCINValue
-  | A_Plus_ALUCIN Tok ALUCINValue
-  | Not_A_Plus_ALUCIN Tok ALUCINValue
+    Not_ALUCIN
+  | B_Minus_A_Minus_One_Plus_ALUCIN
+  | A_Minus_B_Minus_One_Plus_ALUCIN
+  | A_Plus_B_Plus_ALUCIN
+  | B_Plus_ALUCIN
+  | Not_B_Plus_ALUCIN
+  | A_Plus_ALUCIN
+  | Not_A_Plus_ALUCIN
   | -- Logical operations.
-    A_And_B Tok Tok
-  | A_Xor_B Tok Tok
-  | A_Xnor_B Tok Tok
-  | Not_A_And_B Tok Tok
-  | A_And_Not_B Tok Tok
-  | A_Or_Not_B Tok Tok
-  | Not_A_Or_B Tok Tok
-  | A_Or_B Tok Tok
+    A_And_B
+  | A_Xor_B
+  | A_Xnor_B
+  | Not_A_And_B
+  | A_And_Not_B
+  | A_Or_Not_B
+  | Not_A_Or_B
+  | A_Or_B
   deriving (Eq, Show)
 
 data ControlStatement
@@ -105,6 +105,14 @@ data Location
   = Location_Label Label
   | Location_Address Address
   deriving (Eq, Show)
+
+-- *** Parser *** --
+
+type Parser = Parsec Void Text
+
+-- *** Tokens *** --
+
+type TokenSequence = [Tok]
 
 data Tok
   = -- Registers.
@@ -159,4 +167,4 @@ data Tok
   | CloseParen
   | Comma
   | Colon
-  deriving (Eq, Show)
+  deriving (Eq, Ord, Show)
