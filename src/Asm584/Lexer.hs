@@ -272,4 +272,4 @@ hexadecimal :: Parser Integer
 hexadecimal = lexeme $ string' "0x" *> L.hexadecimal
 
 spaces :: Parser ()
-spaces = L.space space1 empty empty
+spaces = L.space space1 (L.skipLineComment "//") (L.skipBlockComment "/*" "*/")

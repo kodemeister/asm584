@@ -54,9 +54,15 @@ spec_lexer = do
       parse identifierP "" `shouldFailOn` "10_Name"
 
   describe "comments" $ do
-    it "parses a comment that ends with LF" $
+    it "skips asm584 line comment" $
+      parse ((,) <$> wrP <*> xwrP) "" "WR // Comment about WR\r\n XWR"
+        `shouldParse` (WR, XWR)
+    it "skips asm584 block comment" $
+      parse ((,) <$> wrP <*> xwrP) "" "WR /* Comment\r\nabout\r\nWR */ XWR"
+        `shouldParse` (WR, XWR)
+    it "parses X584 comment that ends with LF" $
       parse commentP "" "; My Comment\n" `shouldParse` " My Comment"
-    it "parses a comment that ends with CRLF" $
+    it "parses X584 comment that ends with CRLF" $
       parse commentP "" "# My Comment\r\n" `shouldParse` " My Comment"
-    it "skips trailing whitespaces after a comment" $
+    it "skips trailing whitespaces after X584 comment" $
       parse (commentP <* eof) "" ";Comment\r\n  " `shouldParse` "Comment"
