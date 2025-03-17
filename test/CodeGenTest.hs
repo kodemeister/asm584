@@ -16,16 +16,24 @@
  - You should have received a copy of the GNU Lesser General Public License
  - along with asm584. If not, see <https://www.gnu.org/licenses/>.
  -}
+{-# LANGUAGE BinaryLiterals #-}
+{-# LANGUAGE NumericUnderscores #-}
 
-module Asm584
-  ( module Asm584.CodeGen,
-    module Asm584.Lexer,
-    module Asm584.Parser,
-    module Asm584.Types,
-  )
-where
+module CodeGenTest where
 
 import Asm584.CodeGen
-import Asm584.Lexer
-import Asm584.Parser
 import Asm584.Types
+import Test.Hspec
+
+spec_codegen :: Spec
+spec_codegen = do
+  describe "instructions" $ do
+    it "encodes an instruction" $
+      encodeInstruction (WR_Assign_RF_Op_WR A_Xor_B 6) Nothing False
+        `shouldBe` 0b000_0000_1001_01_110
+    it "encodes an instruction with a value of ALUCIN" $
+      encodeInstruction (WR_Assign_RF_Plus_XWR_Plus_ALUCIN 3) (Just True) False
+        `shouldBe` 0b011_0000_1100_10_011
+    it "encodes an instruction with a breakpoint" $
+      encodeInstruction XWR_Assign_DI Nothing True
+        `shouldBe` 0b100_0000_0001_11_010

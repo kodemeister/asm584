@@ -33,6 +33,7 @@ library
     import:           warnings, dependencies
     exposed-modules:
         Asm584
+        Asm584.CodeGen
         Asm584.Lexer
         Asm584.Parser
         Asm584.Types
@@ -58,6 +59,7 @@ test-suite asm584-test
     import:           warnings, dependencies
     default-language: Haskell2010
     other-modules:
+        CodeGenTest
         LexerTest
         ParserTest
 
