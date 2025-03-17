@@ -16,18 +16,48 @@
  - You should have received a copy of the GNU Lesser General Public License
  - along with asm584. If not, see <https://www.gnu.org/licenses/>.
  -}
+{-# LANGUAGE FlexibleContexts #-}
 {-# LANGUAGE OverloadedStrings #-}
+{-# LANGUAGE QuasiQuotes #-}
 
 module ParserTest where
 
 import Asm584.Parser
 import Asm584.Types
+import qualified Data.Map as Map
+import Data.String.Interpolate (i)
+import qualified Data.Text as T
 import Test.Hspec
 import Test.Hspec.Megaparsec
 import Text.Megaparsec hiding (label)
 
 spec_parser :: Spec
 spec_parser = do
+  describe "programs" $ do
+    it "parses a simple program" $
+      parse
+        programP
+        ""
+        "/* Hello */ One: DO := DI goto TWO DO := DI ; Skipped\nTwo: DO := DI"
+        `shouldParse` Program
+          { statements =
+              [ defStatement
+                  { label = Just ("One", 12),
+                    controlStatement =
+                      Just $ ControlStatement_Goto (Location_Label "TWO", 31)
+                  },
+                defStatement {comment = Just " Skipped"},
+                defStatement {label = Just ("Two", 54)}
+              ],
+            labels = Map.fromList [("one", 0), ("two", 2)]
+          }
+    it "fails to parse a program with too many instructions" $
+      parse programP "" `shouldFailOn` T.unwords (replicate 1025 "DO := DI")
+    it "fails to parse a program with duplicated labels" $
+      parse programP "" `shouldFailOn` "метка: ШВых := РОН0\nМеТкА: ШВых := ШВх"
+    it "fails to parse a program with an invalid label in 'goto' statement" $
+      parse programP "" `shouldFailOn` "DO := DI goto invalid\nlabel: DO := DI"
+
   describe "statements" $ do
     testStatement
       "with a single instruction"
@@ -36,7 +66,7 @@ spec_parser = do
     testStatement
       "with a label"
       "my_label: DO := DI"
-      defStatement {label = Just "my_label"}
+      defStatement {label = Just ("my_label", 0)}
     testStatement
       "with a breakpoint"
       "break DO := DI"
@@ -54,7 +84,8 @@ spec_parser = do
       "with a control statement"
       "DO := DI goto 10"
       defStatement
-        { controlStatement = Just $ ControlStatement_Goto (Location_Address 10)
+        { controlStatement =
+            Just $ ControlStatement_Goto (Location_Address 10, 14)
         }
     testStatement
       "with a comment"
@@ -64,22 +95,24 @@ spec_parser = do
       "with a control statement followed by a comment"
       "DO := DI\ngoto 20\n; My Comment"
       defStatement
-        { controlStatement = Just $ ControlStatement_Goto (Location_Address 20),
+        { controlStatement =
+            Just $ ControlStatement_Goto (Location_Address 20, 14),
           comment = Just " My Comment"
         }
     testStatement
       "with a comment followed by a control statement"
       "DO := DI\n; My Comment\ngoto 30"
       defStatement
-        { controlStatement = Just $ ControlStatement_Goto (Location_Address 30),
+        { controlStatement =
+            Just $ ControlStatement_Goto (Location_Address 30, 27),
           comment = Just " My Comment"
         }
 
   describe "labels" $ do
     it "parses a label" $
-      parse labelP "" "label_2: RF0 := DI" `shouldParse` "label_2"
+      parse labelP "" "label_2: RF0 := DI" `shouldParse` ("label_2", 0)
     it "parses a label with trailing spaces" $
-      parse labelP "" "метка_2  : РОН0 := ШИНвх" `shouldParse` "метка_2"
+      parse labelP "" "метка_2  : РОН0 := ШИНвх" `shouldParse` ("метка_2", 0)
     it "does not confuse a label with the destination operand" $
       parse labelP "" `shouldFailOn` "RF0:=DI"
 
@@ -310,30 +343,30 @@ spec_parser = do
       parse controlStatementP "" "if ALUCOUT then label1"
         `shouldParse` ControlStatement_If
           Condition_ALUCOUT
-          (Location_Label "label1")
+          (Location_Label "label1", 16)
           Nothing
     it "parses 'if' statement with 'else' branch" $
       parse controlStatementP "" "if ALUCOUT then label1 else label2"
         `shouldParse` ControlStatement_If
           Condition_ALUCOUT
-          (Location_Label "label1")
-          (Just $ Location_Label "label2")
+          (Location_Label "label1", 16)
+          (Just (Location_Label "label2", 28))
     it "parses 'if' statement with numeric addresses" $
       parse controlStatementP "" "если !СДП2 то 10 иначе 20"
         `shouldParse` ControlStatement_If
           Condition_Not_XWRRT
-          (Location_Address 10)
-          (Just $ Location_Address 20)
+          (Location_Address 10, 14)
+          (Just (Location_Address 20, 23))
     it "fails to parse 'if' statement with an invalid condition" $
       parse controlStatementP "" `shouldFailOn` "if BadCondition then label1"
     it "fails to parse 'if' statement with an invalid address" $
       parse controlStatementP "" `shouldFailOn` "if ALUCOUT then 2000"
     it "parses 'goto' statement" $
       parse controlStatementP "" "goto label"
-        `shouldParse` ControlStatement_Goto (Location_Label "label")
+        `shouldParse` ControlStatement_Goto (Location_Label "label", 5)
     it "parses 'goto' statement with a numeric address" $
       parse controlStatementP "" "goto 10"
-        `shouldParse` ControlStatement_Goto (Location_Address 10)
+        `shouldParse` ControlStatement_Goto (Location_Address 10, 5)
     it "parses 'input' statement with a 16-digit binary number" $
       parse controlStatementP "" "input 0001001000110100"
         `shouldParse` ControlStatement_Input 0x1234
@@ -355,15 +388,15 @@ spec_parser = do
       parse controlStatementP "" `shouldFailOn` "input 0xdeadbeef"
   where
     testStatement name input output =
-      it ("parses a statement " ++ name) $
+      it [i|parses a statement #{name :: String}|] $
         parse statementP "" input `shouldParse` output
 
     defStatement = Statement Nothing False DO_Assign_DI Nothing Nothing Nothing
 
     testInstruction name input output =
-      it ("parses an instruction '" ++ name ++ "'") $
+      it [i|parses an instruction '#{name :: String}'|] $
         parse instructionP "" input `shouldParse` output
 
     testOperation name a b input output =
-      it ("parses an operation '" ++ name ++ "'") $
+      it [i|parses an operation '#{name :: String}'|] $
         parse (operationP a b) "" input `shouldParse` output

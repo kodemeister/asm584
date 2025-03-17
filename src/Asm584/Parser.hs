@@ -16,23 +16,69 @@
  - You should have received a copy of the GNU Lesser General Public License
  - along with asm584. If not, see <https://www.gnu.org/licenses/>.
  -}
+{-# LANGUAGE FlexibleContexts #-}
+{-# LANGUAGE OverloadedStrings #-}
+{-# LANGUAGE QuasiQuotes #-}
 {-# LANGUAGE RecordWildCards #-}
 
 module Asm584.Parser where
 
 import Asm584.Lexer
 import Asm584.Types
+import Control.Monad
 import Control.Monad.Extra (whenMaybe)
+import Data.Either.Extra (mapLeft)
 import Data.Functor
 import qualified Data.Map as Map
 import Data.Maybe
 import Data.Set (Set)
 import qualified Data.Set as Set
+import Data.String.Interpolate (i)
+import Data.Text (Text)
+import qualified Data.Text as T
 import Data.Word
 import Text.Megaparsec hiding (label)
 import Text.Megaparsec.Char
 
 -- *** Parsers *** --
+
+parseProgram :: FilePath -> Text -> Either String Program
+parseProgram file input = mapLeft errorBundlePretty (parse programP file input)
+
+programP :: Parser Program
+programP = do
+  statements <- spaces *> many statementP <* eof
+  validateStatements statements
+
+  labels <- foldM collectLabel Map.empty (zip (map label statements) [0 ..])
+
+  let locations = foldr (collectLocations . controlStatement) [] statements
+  mapM_ (validateLocation labels) locations
+
+  pure Program {..}
+  where
+    validateStatements statements =
+      when (length statements > fromInteger maxInstructionCount) $
+        fail [i|number of microinstructions exceeds #{maxInstructionCount}|]
+
+    collectLabel acc (Just (label, offset), address) = do
+      let label' = T.toCaseFold label
+      when (label' `Map.member` acc) $
+        failAt offset [i|label "#{label}" is already declared|]
+      pure $ Map.insert label' address acc
+    collectLabel acc _ = pure acc
+
+    collectLocations (Just (ControlStatement_If _ loc1 (Just loc2))) acc =
+      loc1 : loc2 : acc
+    collectLocations (Just (ControlStatement_If _ loc Nothing)) acc = loc : acc
+    collectLocations (Just (ControlStatement_Goto loc)) acc = loc : acc
+    collectLocations _ acc = acc
+
+    validateLocation labels (Location_Label label, offset) = do
+      let label' = T.toCaseFold label
+      when (label' `Map.notMember` labels) $
+        failAt offset [i|label "#{label}" is not found|]
+    validateLocation _ _ = pure ()
 
 statementP :: Parser Statement
 statementP = do
@@ -47,8 +93,11 @@ statementP = do
 -- Properly disambiguates labels from destination operands followed by
 -- Pascal-style assignment, e.g. "RF0" is not interpreted as label in the input
 -- string "RF0:=DI".
-labelP :: Parser Label
-labelP = (identifierP <?> "label") <* notFollowedBy assignP <* colonP
+labelP :: Parser (Label, SourceOffset)
+labelP = do
+  offset <- getOffset
+  label <- (identifierP <?> "label") <* notFollowedBy assignP <* colonP
+  pure (label, offset)
 
 breakpointP :: Parser Tok
 breakpointP = breakP <?> "breakpoint"
@@ -107,12 +156,15 @@ conditionP =
     ]
     <?> "condition"
 
-locationP :: Parser Location
-locationP =
-  (Location_Label <$> identifierP <?> "label")
-    <|> (Location_Address <$> addressP <?> "address")
+locationP :: Parser (Location, SourceOffset)
+locationP = do
+  offset <- getOffset
+  location <-
+    (Location_Label <$> identifierP <?> "label")
+      <|> (Location_Address <$> addressP <?> "address")
+  pure (location, offset)
   where
-    addressP = fromInteger <$> valueInRange (0, maxInstructions - 1) decimal
+    addressP = integerInRange (0, maxInstructionCount - 1) decimal
 
 -- | Parses a 16-bit input value in one of the following formats:
 -- 1. A 16-digit binary number.
@@ -124,8 +176,8 @@ inputValueP =
   choice
     [ try $ fromInteger <$> binaryN 16,
       try $ fromInteger <$> binaryMxN 4 4 spaceChar,
-      fromInteger <$> valueInRange (0, 65535) hexadecimal,
-      fromInteger <$> valueInRange (-32768, 65535) (signed decimal)
+      integerInRange (0, 65535) hexadecimal,
+      integerInRange (-32768, 65535) (signed decimal)
     ]
     <?> "16-bit binary, decimal or hexadecimal number"
 
@@ -156,7 +208,7 @@ buildParser = choice . map sequenceP . groupSequences . map splitSequence
 
     sequenceP (Just tok, tss) = tokenP tok *> buildParser tss
     sequenceP (Nothing, ([], a) : _) = pure a
-    sequenceP (Nothing, _) = empty
+    sequenceP (Nothing, _) = error "invalid association list of token sequences"
 
 hasAlucin :: Instruction -> Bool
 hasAlucin instr = instr `Set.member` instructionsWithAlucin
@@ -344,10 +396,12 @@ operations a b =
     ([a, Or, b], A_Or_B)
   ]
 
--- *** Utilities *** --
+-- *** Constants *** --
 
-maxInstructions :: (Num a) => a
-maxInstructions = 1024
+maxInstructionCount :: Integer
+maxInstructionCount = 1024
+
+-- *** Utilities *** --
 
 parens :: Parser a -> Parser a
 parens = between openParenP closeParenP
@@ -361,11 +415,13 @@ optionalPair a b =
       pure (Nothing, Nothing)
     ]
 
-valueInRange :: (Ord a, Show a) => (a, a) -> Parser a -> Parser a
-valueInRange (min', max') p = do
+integerInRange :: (Num a) => (Integer, Integer) -> Parser Integer -> Parser a
+integerInRange (min', max') p = do
+  offset <- getOffset
   value <- p
   if value >= min' && value <= max'
-    then pure value
-    else fail $ "value is out of range " ++ range
-  where
-    range = "[" ++ show min' ++ ", " ++ show max' ++ "]"
+    then pure $ fromInteger value
+    else failAt offset [i|value is out of range [#{min'}, #{max'}]|]
+
+failAt :: SourceOffset -> String -> Parser a
+failAt offset = parseError . FancyError offset . Set.singleton . ErrorFail

@@ -17,13 +17,14 @@
  - along with asm584. If not, see <https://www.gnu.org/licenses/>.
  -}
 {-# LANGUAGE OverloadedStrings #-}
+{-# LANGUAGE QuasiQuotes #-}
 
 module Asm584.Lexer where
 
 import Asm584.Types
 import Data.Char
 import Data.Foldable
-import Data.Functor
+import Data.String.Interpolate (i)
 import Data.Text (Text)
 import qualified Data.Text as T
 import Text.Megaparsec
@@ -40,7 +41,7 @@ xwrP = XWR <$ oneOfSymbols' ["XWR", "РРР"]
 
 rfP :: RFNumber -> Parser Tok
 rfP n
-  | n >= 0 && n <= 7 = RF n <$ oneOfSymbols' (["RF", "РОН"] <&> (<> T.show n))
+  | n >= 0 && n <= 7 = RF n <$ oneOfSymbols' [[i|RF#{n}|], [i|РОН#{n}|]]
   | otherwise = error "invalid register number"
 
 diP :: Parser Tok

@@ -19,6 +19,7 @@
 
 module Asm584.Types where
 
+import Data.Map (Map)
 import Data.Text (Text)
 import Data.Void
 import Data.Word
@@ -26,8 +27,7 @@ import Text.Megaparsec
 
 -- *** Assembly code representation *** --
 
-type Program = [Statement]
-
+-- | Symbolic label.
 type Label = Text
 
 -- | Instruction address in the range [0, 1023].
@@ -36,8 +36,17 @@ type Address = Int
 -- | Register number in the range [0, 7].
 type RFNumber = Int
 
+-- | Character offset in the source code.
+type SourceOffset = Int
+
+data Program = Program
+  { statements :: [Statement],
+    labels :: Map Label Address
+  }
+  deriving (Eq, Show)
+
 data Statement = Statement
-  { label :: Maybe Label,
+  { label :: Maybe (Label, SourceOffset),
     breakpoint :: Bool,
     instruction :: Instruction,
     alucinValue :: Maybe Bool,
@@ -126,8 +135,11 @@ data Operation
   deriving (Eq, Ord, Show)
 
 data ControlStatement
-  = ControlStatement_If Condition Location (Maybe Location)
-  | ControlStatement_Goto Location
+  = ControlStatement_If
+      Condition
+      (Location, SourceOffset)
+      (Maybe (Location, SourceOffset))
+  | ControlStatement_Goto (Location, SourceOffset)
   | ControlStatement_Input Word16
   deriving (Eq, Show)
 
