@@ -107,16 +107,16 @@ breakpointP = breakP <?> "breakpoint"
 --
 -- NOTE: We reverse the list of instructions before building so that the parser
 -- prefers the last matching instruction in case of ambiguity. For instance, the
--- instruction "XWR := DI + WR + ALUCIN" matches both instruction #6 with
--- operation "A + B + ALUCIN" and instruction #16. The parser will choose the
--- latter one.
+-- input string "DO := XWR + ALUCIN" matches both instruction "DO := DI op XWR"
+-- with operation "B + ALUCIN" and the literal instruction "DO := XWR + ALUCIN".
+-- The parser will choose the latter one since it comes later on the list.
 instructionP :: Parser Instruction
 instructionP = buildParser (reverse instructions) <?> "microinstruction"
 
 operationP :: Tok -> Tok -> Parser Operation
 operationP a b = buildParser $ operations a b
 
-alucinValueP :: Parser Bool
+alucinValueP :: Parser AlucinValue
 alucinValueP =
   parens (alucinP *> equalP *> (zeroP <|> oneP)) <&> (== One)
     <?> "value of ALUCIN"
@@ -268,33 +268,33 @@ instructions =
         )
         | n <- rfNumbers
       ],
-      [ ( [XWR, Assign, RF n, Plus, XWR, Plus, ALUCIN],
-          XWR_Assign_RF_Plus_XWR_Plus_ALUCIN n
+      [ ( [WR, Assign, RF n, Plus, XWR, Plus, ALUCIN],
+          WR_Assign_RF_Plus_XWR_Plus_ALUCIN n
         )
         | n <- rfNumbers
       ],
-      [ ( [WR, Assign, RF n, Plus, XWR, Plus, ALUCIN],
-          WR_Assign_RF_Plus_XWR_Plus_ALUCIN n
+      [ ( [XWR, Assign, RF n, Plus, XWR, Plus, ALUCIN],
+          XWR_Assign_RF_Plus_XWR_Plus_ALUCIN n
         )
         | n <- rfNumbers
       ],
       [ ([RF n, Assign, XWR, Plus, ALUCIN], RF_Assign_XWR_Plus_ALUCIN n)
         | n <- rfNumbers
       ],
-      [ ( [XWR, Assign, DI, Plus, WR, Plus, ALUCIN],
-          XWR_Assign_DI_Plus_WR_Plus_ALUCIN
+      [ ( [XWR, Assign, WR, Plus, DI, Plus, ALUCIN],
+          XWR_Assign_WR_Plus_DI_Plus_ALUCIN
         )
       ],
-      [ ( [DO, Assign, DI, Plus, WR, Plus, ALUCIN],
-          DO_Assign_DI_Plus_WR_Plus_ALUCIN
+      [ ( [DO, Assign, WR, Plus, DI, Plus, ALUCIN],
+          DO_Assign_WR_Plus_DI_Plus_ALUCIN
         )
       ],
-      [ ( [WR, Assign, DI, Plus, XWR, Plus, ALUCIN],
-          WR_Assign_DI_Plus_XWR_Plus_ALUCIN
+      [ ( [WR, Assign, XWR, Plus, DI, Plus, ALUCIN],
+          WR_Assign_XWR_Plus_DI_Plus_ALUCIN
         )
       ],
-      [ ( [XWR, Assign, DI, Plus, XWR, Plus, ALUCIN],
-          XWR_Assign_DI_Plus_XWR_Plus_ALUCIN
+      [ ( [XWR, Assign, XWR, Plus, DI, Plus, ALUCIN],
+          XWR_Assign_XWR_Plus_DI_Plus_ALUCIN
         )
       ],
       [([DO, Assign, XWR, Plus, ALUCIN], DO_Assign_XWR_Plus_ALUCIN)],
@@ -306,73 +306,70 @@ instructions =
       [([XWR, Assign, DI], XWR_Assign_DI)],
       [([DO, Assign, DI], DO_Assign_DI)],
       -- Group 4: double-precision shift/arithmetic instructions.
-      [ ( wrxwrAssign ++ rsl [WR, Minus, DI, Minus, One, Plus, ALUCIN],
-          WRXWR_Assign_RSL_WR_Minus_DI_Minus_One_Plus_ALUCIN
+      [ ( wrxwrShift RSL [WR, Minus, DI, Minus, One, Plus, ALUCIN],
+          WRXWR_Assign_RSL_WRXWR_Minus_DI_Minus_One_Plus_ALUCIN
         )
       ],
-      [ ( wrxwrAssign ++ rsl [WR, Plus, DI, Plus, ALUCIN],
-          WRXWR_Assign_RSL_WR_Plus_DI_Plus_ALUCIN
+      [ ( wrxwrShift RSL [WR, Plus, DI, Plus, ALUCIN],
+          WRXWR_Assign_RSL_WRXWR_Plus_DI_Plus_ALUCIN
         )
       ],
-      [ ( wrxwrAssign ++ rsl [WR, Minus, RF n, Minus, One, Plus, ALUCIN],
-          WRXWR_Assign_RSL_WR_Minus_RF_Minus_One_Plus_ALUCIN n
-        )
-        | n <- rfNumbers
-      ],
-      [ ( wrxwrAssign ++ rsl [WR, Plus, RF n, Plus, ALUCIN],
-          WRXWR_Assign_RSL_WR_Plus_RF_Plus_ALUCIN n
+      [ ( wrxwrShift RSL [WR, Minus, RF n, Minus, One, Plus, ALUCIN],
+          WRXWR_Assign_RSL_WRXWR_Minus_RF_Minus_One_Plus_ALUCIN n
         )
         | n <- rfNumbers
       ],
-      [ ( wrxwrAssign ++ asr [WR, Plus, ALUCIN],
-          WRXWR_Assign_ASR_WR_Plus_ALUCIN
-        )
-      ],
-      [ ( wrxwrAssign ++ asr [WR, Minus, DI, Minus, One, Plus, ALUCIN],
-          WRXWR_Assign_ASR_WR_Minus_DI_Minus_One_Plus_ALUCIN
-        )
-      ],
-      [ ( wrxwrAssign ++ asr [WR, Plus, DI, Plus, ALUCIN],
-          WRXWR_Assign_ASR_WR_Plus_DI_Plus_ALUCIN
-        )
-      ],
-      [ ( wrxwrAssign ++ asr [WR, Minus, RF n, Minus, One, Plus, ALUCIN],
-          WRXWR_Assign_ASR_WR_Minus_RF_Minus_One_Plus_ALUCIN n
+      [ ( wrxwrShift RSL [WR, Plus, RF n, Plus, ALUCIN],
+          WRXWR_Assign_RSL_WRXWR_Plus_RF_Plus_ALUCIN n
         )
         | n <- rfNumbers
       ],
-      [ ( wrxwrAssign ++ asr [WR, Plus, RF n, Plus, ALUCIN],
-          WRXWR_Assign_ASR_WR_Plus_RF_Plus_ALUCIN n
+      [ ( wrxwrShift ASR [WR, Plus, ALUCIN],
+          WRXWR_Assign_ASR_WRXWR_Plus_ALUCIN
+        )
+      ],
+      [ ( wrxwrShift ASR [WR, Minus, DI, Minus, One, Plus, ALUCIN],
+          WRXWR_Assign_ASR_WRXWR_Minus_DI_Minus_One_Plus_ALUCIN
+        )
+      ],
+      [ ( wrxwrShift ASR [WR, Plus, DI, Plus, ALUCIN],
+          WRXWR_Assign_ASR_WRXWR_Plus_DI_Plus_ALUCIN
+        )
+      ],
+      [ ( wrxwrShift ASR [WR, Minus, RF n, Minus, One, Plus, ALUCIN],
+          WRXWR_Assign_ASR_WRXWR_Minus_RF_Minus_One_Plus_ALUCIN n
+        )
+        | n <- rfNumbers
+      ],
+      [ ( wrxwrShift ASR [WR, Plus, RF n, Plus, ALUCIN],
+          WRXWR_Assign_ASR_WRXWR_Plus_RF_Plus_ALUCIN n
         )
         | n <- rfNumbers
       ],
       -- Group 5: single-precision shift instructions.
-      [([WR, Assign] ++ asr [WR, Plus, ALUCIN], WR_Assign_ASR_WR_Plus_ALUCIN)],
-      [([WR, Assign] ++ rsr [WR, Plus, ALUCIN], WR_Assign_RSR_WR_Plus_ALUCIN)],
-      [([WR, Assign] ++ asl [WR, Plus, ALUCIN], WR_Assign_ASL_WR_Plus_ALUCIN)],
-      [([WR, Assign] ++ rsl [WR, Plus, ALUCIN], WR_Assign_RSL_WR_Plus_ALUCIN)],
-      [([WR, Assign] ++ lsr [WR, Plus, ALUCIN], WR_Assign_LSR_WR_Plus_ALUCIN)],
-      [([WR, Assign] ++ lsl [WR, Plus, ALUCIN], WR_Assign_LSL_WR_Plus_ALUCIN)],
+      [(wrShift ASR wrPlusAlucin, WR_Assign_ASR_WR_Plus_ALUCIN)],
+      [(wrShift RSR wrPlusAlucin, WR_Assign_RSR_WR_Plus_ALUCIN)],
+      [(wrShift ASL wrPlusAlucin, WR_Assign_ASL_WR_Plus_ALUCIN)],
+      [(wrShift RSL wrPlusAlucin, WR_Assign_RSL_WR_Plus_ALUCIN)],
+      [(wrShift LSR wrPlusAlucin, WR_Assign_LSR_WR_Plus_ALUCIN)],
+      [(wrShift LSL wrPlusAlucin, WR_Assign_LSL_WR_Plus_ALUCIN)],
       -- Group 6: double-precision shift instructions.
-      [(wrxwrAssign ++ asr wrxwrAlucin, WRXWR_Assign_ASR_WRXWR_Plus_ALUCIN)],
-      [(wrxwrAssign ++ rsr wrxwrAlucin, WRXWR_Assign_RSR_WRXWR_Plus_ALUCIN)],
-      [(wrxwrAssign ++ asl wrxwrAlucin, WRXWR_Assign_ASL_WRXWR_Plus_ALUCIN)],
-      [(wrxwrAssign ++ rsl wrxwrAlucin, WRXWR_Assign_RSL_WRXWR_Plus_ALUCIN)],
-      [(wrxwrAssign ++ lsr wrxwrAlucin, WRXWR_Assign_LSR_WRXWR_Plus_ALUCIN)],
-      [(wrxwrAssign ++ lsl wrxwrAlucin, WRXWR_Assign_LSL_WRXWR_Plus_ALUCIN)],
+      [(wrxwrShift RSR wrPlusAlucin, WRXWR_Assign_RSR_WRXWR_Plus_ALUCIN)],
+      [(wrxwrShift ASL wrPlusAlucin, WRXWR_Assign_ASL_WRXWR_Plus_ALUCIN)],
+      [(wrxwrShift RSL wrPlusAlucin, WRXWR_Assign_RSL_WRXWR_Plus_ALUCIN)],
+      [(wrxwrShift LSR wrPlusAlucin, WRXWR_Assign_LSR_WRXWR_Plus_ALUCIN)],
+      [(wrxwrShift LSL wrPlusAlucin, WRXWR_Assign_LSL_WRXWR_Plus_ALUCIN)],
       -- Special instructions.
       [([NOP], No_Operation)]
     ]
   where
     rfNumbers = [0 .. 7]
-    wrxwrAssign = [OpenParen, WR, Comma, XWR, CloseParen, Assign]
-    wrxwrAlucin = [WR, Plus, ALUCIN, Comma, XWR]
-    lsr ts = [LSR, OpenParen] ++ ts ++ [CloseParen]
-    lsl ts = [LSL, OpenParen] ++ ts ++ [CloseParen]
-    asr ts = [ASR, OpenParen] ++ ts ++ [CloseParen]
-    asl ts = [ASL, OpenParen] ++ ts ++ [CloseParen]
-    rsr ts = [RSR, OpenParen] ++ ts ++ [CloseParen]
-    rsl ts = [RSL, OpenParen] ++ ts ++ [CloseParen]
+    wrShift shift expr = [WR, Assign, shift, OpenParen] ++ expr ++ [CloseParen]
+    wrxwrShift shift expr =
+      [OpenParen, WR, Comma, XWR, CloseParen, Assign, shift, OpenParen]
+        ++ expr
+        ++ [Comma, XWR, CloseParen]
+    wrPlusAlucin = [WR, Plus, ALUCIN]
 
 operations :: Tok -> Tok -> [(TokenSequence, Operation)]
 operations a b =

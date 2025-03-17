@@ -36,6 +36,12 @@ type Address = Int
 -- | Register number in the range [0, 7].
 type RFNumber = Int
 
+-- | Whether a breakpoint is set or not.
+type Breakpoint = Bool
+
+-- | Value of ALUCIN specified after the instruction (ALUCIN=0 or ALUCIN=1).
+type AlucinValue = Bool
+
 -- | Character offset in the source code.
 type SourceOffset = Int
 
@@ -47,9 +53,9 @@ data Program = Program
 
 data Statement = Statement
   { label :: Maybe (Label, SourceOffset),
-    breakpoint :: Bool,
+    breakpoint :: Breakpoint,
     instruction :: Instruction,
-    alucinValue :: Maybe Bool,
+    alucinValue :: Maybe AlucinValue,
     controlStatement :: Maybe ControlStatement,
     comment :: Maybe Text
   }
@@ -70,13 +76,13 @@ data Instruction
   | WR_Assign_RF_Plus_DI_Plus_ALUCIN RFNumber
   | XWR_Assign_RF_Plus_DI_Plus_ALUCIN RFNumber
   | RF_Assign_RF_Plus_DI_Plus_ALUCIN RFNumber
-  | XWR_Assign_RF_Plus_XWR_Plus_ALUCIN RFNumber
   | WR_Assign_RF_Plus_XWR_Plus_ALUCIN RFNumber
+  | XWR_Assign_RF_Plus_XWR_Plus_ALUCIN RFNumber
   | RF_Assign_XWR_Plus_ALUCIN RFNumber
-  | XWR_Assign_DI_Plus_WR_Plus_ALUCIN
-  | DO_Assign_DI_Plus_WR_Plus_ALUCIN
-  | WR_Assign_DI_Plus_XWR_Plus_ALUCIN
-  | XWR_Assign_DI_Plus_XWR_Plus_ALUCIN
+  | XWR_Assign_WR_Plus_DI_Plus_ALUCIN
+  | DO_Assign_WR_Plus_DI_Plus_ALUCIN
+  | WR_Assign_XWR_Plus_DI_Plus_ALUCIN
+  | XWR_Assign_XWR_Plus_DI_Plus_ALUCIN
   | DO_Assign_XWR_Plus_ALUCIN
   | -- Group 3: move instructions.
     RF_Assign_DI RFNumber
@@ -86,15 +92,15 @@ data Instruction
   | XWR_Assign_DI
   | DO_Assign_DI
   | -- Group 4: double-precision shift/arithmetic instructions.
-    WRXWR_Assign_RSL_WR_Minus_DI_Minus_One_Plus_ALUCIN
-  | WRXWR_Assign_RSL_WR_Plus_DI_Plus_ALUCIN
-  | WRXWR_Assign_RSL_WR_Minus_RF_Minus_One_Plus_ALUCIN RFNumber
-  | WRXWR_Assign_RSL_WR_Plus_RF_Plus_ALUCIN RFNumber
-  | WRXWR_Assign_ASR_WR_Plus_ALUCIN
-  | WRXWR_Assign_ASR_WR_Minus_DI_Minus_One_Plus_ALUCIN
-  | WRXWR_Assign_ASR_WR_Plus_DI_Plus_ALUCIN
-  | WRXWR_Assign_ASR_WR_Minus_RF_Minus_One_Plus_ALUCIN RFNumber
-  | WRXWR_Assign_ASR_WR_Plus_RF_Plus_ALUCIN RFNumber
+    WRXWR_Assign_RSL_WRXWR_Minus_DI_Minus_One_Plus_ALUCIN
+  | WRXWR_Assign_RSL_WRXWR_Plus_DI_Plus_ALUCIN
+  | WRXWR_Assign_RSL_WRXWR_Minus_RF_Minus_One_Plus_ALUCIN RFNumber
+  | WRXWR_Assign_RSL_WRXWR_Plus_RF_Plus_ALUCIN RFNumber
+  | WRXWR_Assign_ASR_WRXWR_Plus_ALUCIN
+  | WRXWR_Assign_ASR_WRXWR_Minus_DI_Minus_One_Plus_ALUCIN
+  | WRXWR_Assign_ASR_WRXWR_Plus_DI_Plus_ALUCIN
+  | WRXWR_Assign_ASR_WRXWR_Minus_RF_Minus_One_Plus_ALUCIN RFNumber
+  | WRXWR_Assign_ASR_WRXWR_Plus_RF_Plus_ALUCIN RFNumber
   | -- Group 5: single-precision shift instructions.
     WR_Assign_ASR_WR_Plus_ALUCIN
   | WR_Assign_RSR_WR_Plus_ALUCIN
@@ -103,8 +109,7 @@ data Instruction
   | WR_Assign_LSR_WR_Plus_ALUCIN
   | WR_Assign_LSL_WR_Plus_ALUCIN
   | -- Group 6: double-precision shift instructions.
-    WRXWR_Assign_ASR_WRXWR_Plus_ALUCIN
-  | WRXWR_Assign_RSR_WRXWR_Plus_ALUCIN
+    WRXWR_Assign_RSR_WRXWR_Plus_ALUCIN
   | WRXWR_Assign_ASL_WRXWR_Plus_ALUCIN
   | WRXWR_Assign_RSL_WRXWR_Plus_ALUCIN
   | WRXWR_Assign_LSR_WRXWR_Plus_ALUCIN
@@ -132,7 +137,7 @@ data Operation
   | A_Or_Not_B
   | Not_A_Or_B
   | A_Or_B
-  deriving (Eq, Ord, Show)
+  deriving (Enum, Eq, Ord, Show)
 
 data ControlStatement
   = ControlStatement_If
