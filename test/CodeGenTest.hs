@@ -18,11 +18,13 @@
  -}
 {-# LANGUAGE BinaryLiterals #-}
 {-# LANGUAGE NumericUnderscores #-}
+{-# LANGUAGE OverloadedStrings #-}
 
 module CodeGenTest where
 
 import Asm584.CodeGen
 import Asm584.Types
+import qualified Data.Map as Map
 import Test.Hspec
 
 spec_codegen :: Spec
@@ -37,3 +39,32 @@ spec_codegen = do
     it "encodes an instruction with a breakpoint" $
       encodeInstruction XWR_Assign_DI Nothing True
         `shouldBe` 0b100_0000_0001_11_010
+  describe "control statements" $ do
+    it "formats 'if' statement without 'else' branch" $
+      formatControlStatement
+        Map.empty
+        ( ControlStatement_If
+            Condition_ALUCOUT2
+            (Location_Address 10, 0)
+            Nothing
+        )
+        `shouldBe` "если П2 то 10"
+    it "formats 'if' statement with 'else' branch" $
+      formatControlStatement
+        (Map.fromList [("label1", 10), ("метка2", 20), ("label3", 30)])
+        ( ControlStatement_If
+            Condition_Not_WRLFT
+            (Location_Label "Label1", 0)
+            (Just (Location_Label "МЕТКА2", 0))
+        )
+        `shouldBe` "если !СДЛ1 то 10 иначе 20"
+    it "formats 'goto' statement" $
+      formatControlStatement
+        (Map.singleton "переполнение" 666)
+        (ControlStatement_Goto (Location_Label "Переполнение", 0))
+        `shouldBe` "иди_на 666"
+    it "formats 'input' statement" $
+      formatControlStatement
+        Map.empty
+        (ControlStatement_Input 60000)
+        `shouldBe` "ввод 60000"

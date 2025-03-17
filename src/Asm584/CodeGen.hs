@@ -18,11 +18,18 @@
  -}
 {-# LANGUAGE BinaryLiterals #-}
 {-# LANGUAGE NumericUnderscores #-}
+{-# LANGUAGE OverloadedStrings #-}
+{-# LANGUAGE QuasiQuotes #-}
 
 module Asm584.CodeGen where
 
 import Asm584.Types
 import Data.Bits
+import Data.Map (Map)
+import qualified Data.Map as Map
+import Data.String.Interpolate (i)
+import Data.Text (Text)
+import qualified Data.Text as T
 import Data.Word
 
 encodeInstruction :: Instruction -> Maybe AlucinValue -> Breakpoint -> Word16
@@ -108,6 +115,37 @@ toAlucinAttrs Nothing = 0
 toBreakpointAttr :: Breakpoint -> Word16
 toBreakpointAttr True = breakpointAttr
 toBreakpointAttr False = 0
+
+formatControlStatement :: Map Label Address -> ControlStatement -> Text
+formatControlStatement labels (ControlStatement_If cond loc1 (Just loc2)) =
+  [i|если #{formatCondition cond} то #{formatLocation labels loc1} |]
+    <> [i|иначе #{formatLocation labels loc2}|]
+formatControlStatement labels (ControlStatement_If cond loc Nothing) =
+  [i|если #{formatCondition cond} то #{formatLocation labels loc}|]
+formatControlStatement labels (ControlStatement_Goto loc) =
+  [i|иди_на #{formatLocation labels loc}|]
+formatControlStatement _ (ControlStatement_Input value) = [i|ввод #{value}|]
+
+formatCondition :: Condition -> Text
+formatCondition Condition_ALUCOUT = "П"
+formatCondition Condition_ALUCOUT0 = "П0"
+formatCondition Condition_ALUCOUT1 = "П1"
+formatCondition Condition_ALUCOUT2 = "П2"
+formatCondition Condition_Not_WRRT = "!СДП1"
+formatCondition Condition_Not_WRLFT = "!СДЛ1"
+formatCondition Condition_Not_XWRRT = "!СДП2"
+formatCondition Condition_Not_XWRLFT = "!СДЛ2"
+formatCondition Condition_XWR0 = "РРР0"
+formatCondition Condition_XWR3 = "РРР3"
+formatCondition Condition_AMSB = "A15"
+formatCondition Condition_BMSB = "B15"
+
+formatLocation :: Map Label Address -> (Location, SourceOffset) -> Text
+formatLocation labels (Location_Label label, _) =
+  case Map.lookup (T.toCaseFold label) labels of
+    Just address -> T.show address
+    Nothing -> error "invalid mapping of labels to addresses"
+formatLocation _ (Location_Address address, _) = T.show address
 
 -- *** Constants *** --
 
