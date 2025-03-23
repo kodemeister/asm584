@@ -133,7 +133,7 @@ spec_parser = do
         (WR_Assign_DI_Op_WR A_Minus_B_Minus_One_Plus_ALUCIN)
       testInstruction
         "WR := DI op XWR"
-        "РР=ШИНвхили!РРР"
+        "РР=ШИНвх или!РРР"
         (WR_Assign_DI_Op_XWR A_Or_Not_B)
       testInstruction
         "XWR := DI op WR"
@@ -325,10 +325,10 @@ spec_parser = do
       testOperation "A and B" DI WR "DI and WR" A_And_B
       testOperation "A xor B" DI XWR "DI xor XWR" A_Xor_B
       testOperation "!(A xor B)" DI XWR "!(DI xor XWR)" A_Xnor_B
-      testOperation "!A and B" DI WR "!DIandWR" Not_A_And_B
-      testOperation "A and !B" DI WR "DIand!WR" A_And_Not_B
-      testOperation "A or !B" (RF 1) WR "РОН1или!РР" A_Or_Not_B
-      testOperation "!A or B" (RF 1) WR "!РОН1илиРР" Not_A_Or_B
+      testOperation "!A and B" DI WR "!DI and WR" Not_A_And_B
+      testOperation "A and !B" DI WR "DI and!WR" A_And_Not_B
+      testOperation "A or !B" (RF 1) WR "РОН1 или!РР" A_Or_Not_B
+      testOperation "!A or B" (RF 1) WR "!РОН1 или РР" Not_A_Or_B
       testOperation "A or B" (RF 7) WR "RF7 или WR" A_Or_B
 
   describe "control statements" $ do
