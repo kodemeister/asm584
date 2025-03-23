@@ -151,8 +151,6 @@ tokenP CloseParen = closeParenP
 tokenP Comma = commaP
 tokenP Colon = colonP
 
--- *** Utilities *** --
-
 identifierP :: Parser Text
 identifierP =
   lexeme $
@@ -172,21 +170,7 @@ commentP =
     isCommentChar c = c == ';' || c == '#'
     isNotNewline c = c /= '\r' && c /= '\n'
 
-lexeme :: Parser a -> Parser a
-lexeme = L.lexeme spaces
-
-symbol :: Text -> Parser Text
-symbol = L.symbol spaces
-
-oneOfSymbols :: [Text] -> Parser Text
-oneOfSymbols = choice . map symbol
-
-keyword :: Text -> Parser Text
-keyword str =
-  try . lexeme $ string' str <* notFollowedBy (alphaNumChar <|> char '_')
-
-oneOfKeywords :: [Text] -> Parser Text
-oneOfKeywords = choice . map keyword
+-- *** Numbers *** --
 
 signed :: (Num a) => Parser a -> Parser a
 signed = L.signed spaces
@@ -212,6 +196,24 @@ decimal = lexeme L.decimal
 
 hexadecimal :: Parser Integer
 hexadecimal = lexeme $ string' "0x" *> L.hexadecimal
+
+-- *** Utilities *** --
+
+lexeme :: Parser a -> Parser a
+lexeme = L.lexeme spaces
+
+symbol :: Text -> Parser Text
+symbol = L.symbol spaces
+
+oneOfSymbols :: [Text] -> Parser Text
+oneOfSymbols = choice . map symbol
+
+keyword :: Text -> Parser Text
+keyword str =
+  try . lexeme $ string' str <* notFollowedBy (alphaNumChar <|> char '_')
+
+oneOfKeywords :: [Text] -> Parser Text
+oneOfKeywords = choice . map keyword
 
 spaces :: Parser ()
 spaces = L.space space1 (L.skipLineComment "//") (L.skipBlockComment "/*" "*/")
