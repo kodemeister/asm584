@@ -28,6 +28,39 @@ import Test.Hspec
 
 spec_codegen :: Spec
 spec_codegen = do
+  describe "programs" $ do
+    it "encodes a simple program" $
+      encodeProgram
+        Program
+          { statements =
+              [ defStatement
+                  { instruction = XWR_Assign_DI,
+                    controlStatement = Just $ ControlStatement_Input 1234,
+                    comment = Just " Hello"
+                  },
+                defStatement
+                  { instruction = DO_Assign_XWR_Plus_ALUCIN,
+                    alucinValue = Just True,
+                    comment = Just "Test Comment"
+                  }
+              ],
+            labels = Map.empty
+          }
+        `shouldBe` B.concat
+          [ "X584",
+            "\x3A\x00", -- 0b000_0000_0001_11_010
+            "\x09\xE2\xE2\xEE\xE4 1234",
+            "\xDA\x61", -- 0b011_0000_1110_11_010
+            "\x0CTest Comment",
+            B.concat $ replicate 1022 "\x9A\x00\x00",
+            "V2.0",
+            "\x0D\xD0\xB2\xD0\xB2\xD0\xBE\xD0\xB4 1234",
+            "\x05Hello",
+            "\x00",
+            "\x0CTest Comment",
+            B.concat $ replicate 1022 "\x00\x00"
+          ]
+
   describe "statements" $ do
     it "encodes a statement" $
       encodeStatement

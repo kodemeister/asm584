@@ -19,9 +19,15 @@
 
 module Asm584.CodeGen where
 
+import Asm584.Parser
 import Asm584.Types
+import Control.Monad
+import Data.Binary.Put
+import qualified Data.Binary.ULEB128 as ULEB128
 import Data.Bits
 import Data.ByteString (ByteString)
+import qualified Data.ByteString as B
+import qualified Data.ByteString.Lazy as BL
 import Data.Encoding
 import Data.Encoding.CP1251
 import Data.Map (Map)
@@ -31,6 +37,23 @@ import Data.Text (Text)
 import qualified Data.Text as T
 import qualified Data.Text.Encoding as T
 import Data.Word
+
+encodeProgram :: Program -> ByteString
+encodeProgram Program {..} = BL.toStrict . runPut $ do
+  putByteString signatureV1
+  forM_ encodedStatements $ \(instruction, commentV1, _, _) -> do
+    putWord16le instruction
+    putWord8 $ fromIntegral (B.length commentV1)
+    putByteString commentV1
+
+  putByteString signatureV2
+  forM_ encodedStatements $ \(_, _, controlV2, commentV2) -> do
+    ULEB128.putByteString controlV2
+    ULEB128.putByteString commentV2
+  where
+    paddedStatements = padRight maxInstructionCount nopStatement statements
+    encodedStatements = map (encodeStatement labels) paddedStatements
+    nopStatement = Statement Nothing False No_Operation Nothing Nothing Nothing
 
 encodeStatement ::
   Map Label Address ->
@@ -164,6 +187,12 @@ formatLocation _ (Location_Address address, _) = T.pack $ show address
 
 -- *** Constants *** --
 
+signatureV1 :: ByteString
+signatureV1 = "X584"
+
+signatureV2 :: ByteString
+signatureV2 = "V2.0"
+
 maxCommentLengthV1 :: Int
 maxCommentLengthV1 = 128
 
@@ -173,6 +202,9 @@ alucinValueAttr = 0x4000
 breakpointAttr = 0x8000
 
 -- *** Utilities *** --
+
+padRight :: Int -> a -> [a] -> [a]
+padRight n x xs = xs ++ replicate (n - length xs) x
 
 firstNonEmpty :: Text -> Text -> Text
 firstNonEmpty t1 t2 = if not $ T.null t1 then t1 else t2
