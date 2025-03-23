@@ -43,26 +43,28 @@ parseProgram file input = mapLeft errorBundlePretty (parse programP file input)
 
 programP :: Parser Program
 programP = do
-  statements <- spaces *> many statementP <* eof
-  validateStatements statements
-
-  labels <- foldM collectLabel Map.empty (zip (map label statements) [0 ..])
-
-  let locations = foldr (collectLocations . controlStatement) [] statements
-  mapM_ (validateLocation labels) locations
-
+  statements <- spaces *> count' 1 maxInstructionCount statementP >>= checkEnd
+  labels <- getLabels statements
+  forM_ (getLocations statements) $ \location ->
+    checkLocation labels location
   pure Program {..}
   where
-    validateStatements statements =
-      when (length statements > fromInteger maxInstructionCount) $
+    checkEnd statements = do
+      end <- atEnd
+      when (length statements == maxInstructionCount && not end) $
         fail [i|number of microinstructions exceeds #{maxInstructionCount}|]
+      statements <$ eof
 
-    collectLabel acc (Just (label, offset), address) = do
+    getLabels = foldM collectLabel Map.empty . zip [0 ..] . map label
+
+    collectLabel acc (address, Just (label, offset)) = do
       let label' = T.toCaseFold label
       when (label' `Map.member` acc) $
         failAt offset [i|label "#{label}" is already declared|]
       pure $ Map.insert label' address acc
     collectLabel acc _ = pure acc
+
+    getLocations = foldr (collectLocations . controlStatement) []
 
     collectLocations (Just (ControlStatement_If _ loc1 (Just loc2))) acc =
       loc1 : loc2 : acc
@@ -70,11 +72,11 @@ programP = do
     collectLocations (Just (ControlStatement_Goto loc)) acc = loc : acc
     collectLocations _ acc = acc
 
-    validateLocation labels (Location_Label label, offset) = do
+    checkLocation labels (Location_Label label, offset) = do
       let label' = T.toCaseFold label
       when (label' `Map.notMember` labels) $
         failAt offset [i|label "#{label}" is not found|]
-    validateLocation _ _ = pure ()
+    checkLocation _ _ = pure ()
 
 statementP :: Parser Statement
 statementP = do
@@ -161,7 +163,8 @@ locationP = do
   pure (location, offset)
 
 addressP :: Parser Address
-addressP = fromInteger <$> integerInRange (0, maxInstructionCount - 1) decimal
+addressP =
+  fromInteger <$> integerInRange (0, toInteger maxInstructionCount - 1) decimal
 
 -- | Parses a 16-bit input value in one of the following formats:
 -- 1. A 16-digit binary number.
@@ -394,7 +397,7 @@ operations a b =
 
 -- *** Constants *** --
 
-maxInstructionCount :: Integer
+maxInstructionCount :: Int
 maxInstructionCount = 1024
 
 -- *** Utilities *** --
