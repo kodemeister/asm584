@@ -31,10 +31,8 @@ import qualified Text.Megaparsec.Char.Lexer as L
 
 -- *** Tokens *** --
 
-wrP :: Parser Tok
+wrP, xwrP :: Parser Tok
 wrP = WR <$ oneOfSymbols' ["WR", "РР"]
-
-xwrP :: Parser Tok
 xwrP = XWR <$ oneOfSymbols' ["XWR", "РРР"]
 
 rfP :: RFNumber -> Parser Tok
@@ -42,130 +40,68 @@ rfP n
   | n >= 0 && n <= 7 = RF n <$ oneOfSymbols' [[i|RF#{n}|], [i|РОН#{n}|]]
   | otherwise = error "invalid register number"
 
-diP :: Parser Tok
+diP, doP :: Parser Tok
 diP = DI <$ oneOfSymbols' ["DI", "ШИНвх", "ШВх"]
-
-doP :: Parser Tok
 doP = DO <$ oneOfSymbols' ["DO", "ШИНвых", "ШВых"]
 
 alucinP :: Parser Tok
 alucinP = ALUCIN <$ oneOfSymbols' ["ALUCIN", "C", "П"]
 
-alucoutP :: Parser Tok
+alucoutP, alucout0P, alucout1P, alucout2P :: Parser Tok
 alucoutP = ALUCOUT <$ oneOfSymbols' ["ALUCOUT", "CO3", "C", "ПАЛУ3", "П"]
-
-alucout0P :: Parser Tok
 alucout0P = ALUCOUT0 <$ oneOfSymbols' ["ALUCOUT0", "CO0", "C0", "ПАЛУ0", "П0"]
-
-alucout1P :: Parser Tok
 alucout1P = ALUCOUT1 <$ oneOfSymbols' ["ALUCOUT1", "CO1", "C1", "ПАЛУ1", "П1"]
-
-alucout2P :: Parser Tok
 alucout2P = ALUCOUT2 <$ oneOfSymbols' ["ALUCOUT2", "CO2", "C2", "ПАЛУ2", "П2"]
 
-wrrtP :: Parser Tok
+wrrtP, wrlftP, xwrrtP, xwrlftP :: Parser Tok
 wrrtP = WRRT <$ oneOfSymbols' ["WRRT", "SR1", "СДП1"]
-
-wrlftP :: Parser Tok
 wrlftP = WRLFT <$ oneOfSymbols' ["WRLFT", "SL1", "СДЛ1"]
-
-xwrrtP :: Parser Tok
 xwrrtP = XWRRT <$ oneOfSymbols' ["XWRRT", "SR2", "СДП2"]
-
-xwrlftP :: Parser Tok
 xwrlftP = XWRLFT <$ oneOfSymbols' ["XWRLFT", "SL2", "СДЛ2"]
 
-xwr0P :: Parser Tok
+xwr0P, xwr3P, amsbP, bmsbP :: Parser Tok
 xwr0P = XWR0 <$ oneOfSymbols' ["XWR0", "РРР0"]
-
-xwr3P :: Parser Tok
 xwr3P = XWR3 <$ oneOfSymbols' ["XWR3", "РРР3"]
-
-amsbP :: Parser Tok
 amsbP = AMSB <$ oneOfSymbols' ["AMSB", "A15"]
-
-bmsbP :: Parser Tok
 bmsbP = BMSB <$ oneOfSymbols' ["BMSB", "B15"]
 
-plusP :: Parser Tok
+plusP, minusP, zeroP, oneP :: Parser Tok
 plusP = Plus <$ symbol "+"
-
-minusP :: Parser Tok
 minusP = Minus <$ symbol "-"
-
-zeroP :: Parser Tok
 zeroP = Zero <$ symbol "0"
-
-oneP :: Parser Tok
 oneP = One <$ symbol "1"
 
-andP :: Parser Tok
+andP, orP, xorP, notP :: Parser Tok
 andP = And <$ oneOfSymbols' ["and", "и"]
-
-orP :: Parser Tok
 orP = Or <$ oneOfSymbols' ["or", "или"]
-
-xorP :: Parser Tok
 xorP = Xor <$ oneOfSymbols' ["xor", "искл_или"]
-
-notP :: Parser Tok
 notP = Not <$ symbol "!"
 
-lsrP :: Parser Tok
+lsrP, lslP, asrP, aslP, rsrP, rslP :: Parser Tok
 lsrP = LSR <$ oneOfSymbols' ["LSR", "СЛП"]
-
-lslP :: Parser Tok
 lslP = LSL <$ oneOfSymbols' ["LSL", "СЛЛ"]
-
-asrP :: Parser Tok
 asrP = ASR <$ oneOfSymbols' ["ASR", "САП"]
-
-aslP :: Parser Tok
 aslP = ASL <$ oneOfSymbols' ["ASL", "САЛ"]
-
-rsrP :: Parser Tok
 rsrP = RSR <$ oneOfSymbols' ["RSR", "СЦП"]
-
-rslP :: Parser Tok
 rslP = RSL <$ oneOfSymbols' ["RSL", "СЦЛ"]
 
-nopP :: Parser Tok
+nopP, breakP :: Parser Tok
 nopP = NOP <$ oneOfSymbols' ["NOP", "НОП", "<ПУСТО>"]
-
-breakP :: Parser Tok
 breakP = Break <$ oneOfSymbols' ["break", "останов"]
 
-ifP :: Parser Tok
+ifP, thenP, elseP, gotoP, inputP :: Parser Tok
 ifP = If <$ oneOfSymbols' ["if", "если"]
-
-thenP :: Parser Tok
 thenP = Then <$ oneOfSymbols' ["then", "то"]
-
-elseP :: Parser Tok
 elseP = Else <$ oneOfSymbols' ["else", "иначе"]
-
-gotoP :: Parser Tok
 gotoP = Goto <$ oneOfSymbols' ["goto", "иди_на"]
-
-inputP :: Parser Tok
 inputP = Input <$ oneOfSymbols' ["input", "ввод"]
 
-assignP :: Parser Tok
+assignP, equalP, openParenP, closeParenP, commaP, colonP :: Parser Tok
 assignP = Assign <$ oneOfSymbols [":=", "="]
-
-equalP :: Parser Tok
 equalP = Equal <$ symbol "="
-
-openParenP :: Parser Tok
 openParenP = OpenParen <$ symbol "("
-
-closeParenP :: Parser Tok
 closeParenP = CloseParen <$ symbol ")"
-
-commaP :: Parser Tok
 commaP = Comma <$ symbol ","
-
-colonP :: Parser Tok
 colonP = Colon <$ symbol ":"
 
 tokenP :: Tok -> Parser Tok
