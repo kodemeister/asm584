@@ -21,12 +21,31 @@ module Asm584.CodeGen where
 
 import Asm584.Types
 import Data.Bits
+import Data.ByteString (ByteString)
+import Data.Encoding
+import Data.Encoding.CP1251
 import Data.Map (Map)
 import qualified Data.Map as Map
 import Data.String.Interpolate (i)
 import Data.Text (Text)
 import qualified Data.Text as T
+import qualified Data.Text.Encoding as T
 import Data.Word
+
+encodeStatement ::
+  Map Label Address ->
+  Statement ->
+  (Word16, ByteString, ByteString, ByteString)
+encodeStatement labels Statement {..} =
+  ( encodeInstruction instruction alucinValue breakpoint,
+    encodeTo CP1251 commentV1,
+    T.encodeUtf8 controlV2,
+    T.encodeUtf8 commentV2
+  )
+  where
+    commentV1 = T.take maxCommentLengthV1 (firstNonEmpty controlV2 commentV2)
+    controlV2 = maybe "" (formatControlStatement labels) controlStatement
+    commentV2 = maybe "" T.strip comment
 
 encodeInstruction :: Instruction -> Maybe AlucinValue -> Breakpoint -> Word16
 encodeInstruction instruction alucinValue breakpoint =
@@ -145,7 +164,20 @@ formatLocation _ (Location_Address address, _) = T.pack $ show address
 
 -- *** Constants *** --
 
+maxCommentLengthV1 :: Int
+maxCommentLengthV1 = 128
+
 hasAlucinAttr, alucinValueAttr, breakpointAttr :: Word16
 hasAlucinAttr = 0x2000
 alucinValueAttr = 0x4000
 breakpointAttr = 0x8000
+
+-- *** Utilities *** --
+
+firstNonEmpty :: Text -> Text -> Text
+firstNonEmpty t1 t2 = if not $ T.null t1 then t1 else t2
+
+encodeTo :: (Encoding enc) => enc -> Text -> ByteString
+encodeTo enc = encodeStrictByteString enc . map replaceUnknownChar . T.unpack
+  where
+    replaceUnknownChar c = if encodeable enc c then c else '?'

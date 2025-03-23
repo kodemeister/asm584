@@ -21,11 +21,49 @@ module CodeGenTest where
 
 import Asm584.CodeGen
 import Asm584.Types
+import qualified Data.ByteString as B
 import qualified Data.Map as Map
+import qualified Data.Text as T
 import Test.Hspec
 
 spec_codegen :: Spec
 spec_codegen = do
+  describe "statements" $ do
+    it "encodes a statement" $
+      encodeStatement
+        (Map.singleton "метка" 13)
+        ( Statement
+            Nothing
+            True
+            WR_Assign_ASR_WR_Plus_ALUCIN
+            (Just False)
+            (Just $ ControlStatement_Goto (Location_Label "Метка", 0))
+            (Just " My Comment ")
+        )
+        `shouldBe` ( 0b101_0000_0000_11_101,
+                     "\xE8\xE4\xE8_\xED\xE0 13",
+                     "\xD0\xB8\xD0\xB4\xD0\xB8_\xD0\xBD\xD0\xB0 13",
+                     "My Comment"
+                   )
+    it "encodes a statement with a long comment" $
+      encodeStatement
+        Map.empty
+        defStatement {comment = Just $ T.replicate 200 "П"}
+        `shouldBe` ( 0b000_0000_1111_11_010,
+                     B.replicate 128 0xCF,
+                     "",
+                     B.concat $ replicate 200 "\xD0\x9F"
+                   )
+    it "encodes a statement with a comment containing Chinese characters" $
+      encodeStatement
+        Map.empty
+        defStatement {comment = Just "Hello, 世界!"}
+        `shouldBe` ( 0b000_0000_1111_11_010,
+                     "Hello, ??!",
+                     "",
+                     "Hello, \xE4\xB8\x96\xE7\x95\x8C!"
+                   )
+
   describe "instructions" $ do
     it "encodes an instruction" $
       encodeInstruction (WR_Assign_RF_Op_WR A_Xor_B 6) Nothing False
@@ -36,6 +74,7 @@ spec_codegen = do
     it "encodes an instruction with a breakpoint" $
       encodeInstruction XWR_Assign_DI Nothing True
         `shouldBe` 0b100_0000_0001_11_010
+
   describe "control statements" $ do
     it "formats 'if' statement without 'else' branch" $
       formatControlStatement
@@ -65,3 +104,5 @@ spec_codegen = do
         Map.empty
         (ControlStatement_Input 60000)
         `shouldBe` "ввод 60000"
+  where
+    defStatement = Statement Nothing False DO_Assign_DI Nothing Nothing Nothing
