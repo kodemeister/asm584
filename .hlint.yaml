@@ -1,2 +1,4 @@
 - ignore: { name: "Use camelCase" }
 - ignore: { name: "Use underscore" }
+
+- arguments: [-XQuasiQuotes]

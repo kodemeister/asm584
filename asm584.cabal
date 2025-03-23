@@ -17,10 +17,8 @@ extra-doc-files:
 
 -- extra-source-files:
 
-common warnings
+common common-options
     ghc-options: -Wall
-
-common dependencies
     build-depends:
         base >=4.17.2.1 && <5,
         containers >=0.6 && <0.8,
@@ -29,8 +27,17 @@ common dependencies
         string-interpolate ^>=0.3.4.0,
         text ^>=2.1.2
 
+    default-language: Haskell2010
+    default-extensions:
+        BinaryLiterals
+        FlexibleContexts
+        NumericUnderscores
+        OverloadedStrings
+        QuasiQuotes
+        RecordWildCards
+
 library
-    import:           warnings, dependencies
+    import:           common-options
     exposed-modules:
         Asm584
         Asm584.CodeGen
@@ -42,10 +49,9 @@ library
     -- other-extensions:
     -- build-depends:
     hs-source-dirs:   src
-    default-language: Haskell2010
 
 executable asm584
-    import:           warnings, dependencies
+    import:           common-options
     main-is:          Main.hs
     -- other-modules:
     -- other-extensions:
@@ -53,11 +59,9 @@ executable asm584
         asm584
 
     hs-source-dirs:   app
-    default-language: Haskell2010
 
 test-suite asm584-test
-    import:           warnings, dependencies
-    default-language: Haskell2010
+    import:           common-options
     other-modules:
         CodeGenTest
         LexerTest
