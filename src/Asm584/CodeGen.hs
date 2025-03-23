@@ -139,9 +139,9 @@ formatCondition Condition_BMSB = "B15"
 formatLocation :: Map Label Address -> (Location, SourceOffset) -> Text
 formatLocation labels (Location_Label label, _) =
   case Map.lookup (T.toCaseFold label) labels of
-    Just address -> T.show address
+    Just address -> T.pack $ show address
     Nothing -> error "invalid mapping of labels to addresses"
-formatLocation _ (Location_Address address, _) = T.show address
+formatLocation _ (Location_Address address, _) = T.pack $ show address
 
 -- *** Constants *** --
 
