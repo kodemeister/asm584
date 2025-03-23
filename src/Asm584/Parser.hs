@@ -163,8 +163,9 @@ locationP = do
     (Location_Label <$> identifierP <?> "label")
       <|> (Location_Address <$> addressP <?> "address")
   pure (location, offset)
-  where
-    addressP = integerInRange (0, maxInstructionCount - 1) decimal
+
+addressP :: Parser Address
+addressP = fromInteger <$> integerInRange (0, maxInstructionCount - 1) decimal
 
 -- | Parses a 16-bit input value in one of the following formats:
 -- 1. A 16-digit binary number.
@@ -173,13 +174,15 @@ locationP = do
 -- 4. A signed or unsigned decimal number.
 inputValueP :: Parser Word16
 inputValueP =
-  choice
-    [ try $ fromInteger <$> binaryN 16,
-      try $ fromInteger <$> binaryMxN 4 4 spaceChar,
-      integerInRange (0, 65535) hexadecimal,
-      integerInRange (-32768, 65535) (signed decimal)
-    ]
+  fromInteger <$> integerInRange (-32768, 65535) (choice formats)
     <?> "16-bit binary, decimal or hexadecimal number"
+  where
+    formats =
+      [ try $ binaryN 16,
+        try $ binaryMxN 4 4 spaceChar,
+        hexadecimal,
+        signed decimal
+      ]
 
 -- *** Parser builder *** --
 
@@ -412,12 +415,12 @@ optionalPair a b =
       pure (Nothing, Nothing)
     ]
 
-integerInRange :: (Num a) => (Integer, Integer) -> Parser Integer -> Parser a
+integerInRange :: (Integer, Integer) -> Parser Integer -> Parser Integer
 integerInRange (min', max') p = do
   offset <- getOffset
   value <- p
   if value >= min' && value <= max'
-    then pure $ fromInteger value
+    then pure value
     else failAt offset [i|value is out of range [#{min'}, #{max'}]|]
 
 failAt :: SourceOffset -> String -> Parser a
