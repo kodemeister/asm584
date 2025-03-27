@@ -22,6 +22,7 @@ module Asm584.Parser where
 import Asm584.InstructionSet
 import Asm584.Lexer
 import Asm584.Types
+import Control.Applicative.Permutations
 import Control.Monad
 import Data.Either.Extra (mapLeft)
 import Data.Functor
@@ -84,8 +85,11 @@ statementP = do
   alucinValue <- case alucin of
     NoAlucin -> pure Nothing
     NeedsAlucin -> Just <$> alucinValueP
-  (controlStatement, comment) <- optionalPair controlStatementP commentP
+  (controlStatement, comment) <-
+    runPermutation $ (,) <$> toPerm controlStatementP <*> toPerm commentP
   pure Statement {..}
+  where
+    toPerm p = toPermutationWithDefault Nothing (Just <$> p)
 
 -- | Parses a label (an identifier followed by colon character).
 -- Properly disambiguates labels from destination operands followed by
@@ -221,15 +225,6 @@ buildParser = choice . map sequenceP . groupSequences . map splitSequence
 
 parens :: Parser a -> Parser a
 parens = between openParenP closeParenP
-
--- | Parses a pair of optional values that can appear in any order.
-optionalPair :: Parser a -> Parser b -> Parser (Maybe a, Maybe b)
-optionalPair a b =
-  choice
-    [ (,) . Just <$> a <*> optional b,
-      flip (,) . Just <$> b <*> optional a,
-      pure (Nothing, Nothing)
-    ]
 
 customFailureAt :: SourceOffset -> ParserError -> Parser a
 customFailureAt offset =
