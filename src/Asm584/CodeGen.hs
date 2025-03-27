@@ -52,7 +52,8 @@ encodeProgram Program {..} = BL.toStrict . runPut $ do
   where
     paddedStatements = padRight maxInstructionCount nopStatement statements
     encodedStatements = map (encodeStatement labels) paddedStatements
-    nopStatement = Statement Nothing False No_Operation Nothing Nothing Nothing
+    nopStatement =
+      Statement Nothing BreakpointUnset No_Operation Nothing Nothing Nothing
 
 encodeStatement ::
   Map Label Address ->
@@ -150,8 +151,8 @@ toAlucinAttrs (Just False) = hasAlucinAttr
 toAlucinAttrs Nothing = 0
 
 toBreakpointAttr :: Breakpoint -> Word16
-toBreakpointAttr True = breakpointAttr
-toBreakpointAttr False = 0
+toBreakpointAttr BreakpointSet = breakpointAttr
+toBreakpointAttr BreakpointUnset = 0
 
 formatControlStatement :: Map Label Address -> ControlStatement -> Text
 formatControlStatement labels (ControlStatement_If cond loc1 (Just loc2)) =

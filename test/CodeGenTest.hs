@@ -67,7 +67,7 @@ spec_codegen = do
         (Map.singleton "метка" 13)
         ( Statement
             Nothing
-            True
+            BreakpointSet
             WR_Assign_ASR_WR_Plus_ALUCIN
             (Just False)
             (Just $ ControlStatement_Goto (Location_Label "Метка", 0))
@@ -99,13 +99,13 @@ spec_codegen = do
 
   describe "instructions" $ do
     it "encodes an instruction" $
-      encodeInstruction (WR_Assign_RF_Op_WR A_Xor_B 6) Nothing False
+      encodeInstruction (WR_Assign_RF_Op_WR A_Xor_B 6) Nothing BreakpointUnset
         `shouldBe` 0b000_0000_1001_01_110
     it "encodes an instruction with a value of ALUCIN" $
-      encodeInstruction (WR_Assign_RF_Plus_XWR_Plus_ALUCIN 3) (Just True) False
-        `shouldBe` 0b011_0000_1100_10_011
+      encodeInstruction WR_Assign_ASL_WR_Plus_ALUCIN (Just True) BreakpointUnset
+        `shouldBe` 0b011_0000_0010_11_101
     it "encodes an instruction with a breakpoint" $
-      encodeInstruction XWR_Assign_DI Nothing True
+      encodeInstruction XWR_Assign_DI Nothing BreakpointSet
         `shouldBe` 0b100_0000_0001_11_010
 
   describe "control statements" $ do
@@ -138,4 +138,5 @@ spec_codegen = do
         (ControlStatement_Input 60000)
         `shouldBe` "ввод 60000"
   where
-    defStatement = Statement Nothing False DO_Assign_DI Nothing Nothing Nothing
+    defStatement =
+      Statement Nothing BreakpointUnset DO_Assign_DI Nothing Nothing Nothing

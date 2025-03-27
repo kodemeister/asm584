@@ -67,7 +67,7 @@ spec_parser = do
     testStatement
       "with a breakpoint"
       "break DO := DI"
-      defStatement {breakpoint = True}
+      defStatement {breakpoint = BreakpointSet}
     testStatement
       "with a value of ALUCIN"
       "DO := XWR + C (C=1)"
@@ -384,7 +384,8 @@ spec_parser = do
       it [i|parses a statement #{name :: String}|] $
         parse statementP "" input `shouldParse` output
 
-    defStatement = Statement Nothing False DO_Assign_DI Nothing Nothing Nothing
+    defStatement =
+      Statement Nothing BreakpointUnset DO_Assign_DI Nothing Nothing Nothing
 
     testInstruction name input output =
       it [i|parses an instruction '#{name :: String}'|] $

@@ -36,9 +36,6 @@ type Address = Int
 -- | Register number in the range [0, 7].
 type RFNumber = Int
 
--- | Whether a breakpoint is set or not.
-type Breakpoint = Bool
-
 -- | Value of ALUCIN (0 or 1).
 type AlucinValue = Bool
 
@@ -59,6 +56,11 @@ data Statement = Statement
     controlStatement :: Maybe ControlStatement,
     comment :: Maybe Text
   }
+  deriving (Eq, Show)
+
+data Breakpoint
+  = BreakpointUnset
+  | BreakpointSet
   deriving (Eq, Show)
 
 data Instruction

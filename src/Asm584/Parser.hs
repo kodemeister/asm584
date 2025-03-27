@@ -79,7 +79,7 @@ programP = do
 statementP :: Parser Statement
 statementP = do
   label <- optional $ try labelP
-  breakpoint <- isJust <$> optional breakpointP
+  breakpoint <- breakpointP
   (instruction, alucin) <- instructionP
   alucinValue <- case alucin of
     NoAlucin -> pure Nothing
@@ -97,8 +97,8 @@ labelP = do
   label <- (identifierP <?> "label") <* notFollowedBy assignP <* colonP
   pure (label, offset)
 
-breakpointP :: Parser Tok
-breakpointP = breakP <?> "breakpoint"
+breakpointP :: Parser Breakpoint
+breakpointP = option BreakpointUnset (BreakpointSet <$ breakP) <?> "breakpoint"
 
 -- | Parses an instruction. The parser is automatically built from the list of
 -- all possible instructions.
