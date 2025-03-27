@@ -20,10 +20,10 @@
 module Asm584.Types where
 
 import Data.Map (Map)
+import Data.String.Interpolate (i)
 import Data.Text (Text)
-import Data.Void
 import Data.Word
-import Text.Megaparsec
+import Text.Megaparsec hiding (label)
 
 -- *** Assembly code representation *** --
 
@@ -170,7 +170,7 @@ data Location
 
 -- *** Parser *** --
 
-type Parser = Parsec Void Text
+type Parser = Parsec ParserError Text
 
 -- *** Tokens *** --
 
@@ -233,3 +233,30 @@ data Tok
   | Comma
   | Colon
   deriving (Eq, Ord, Show)
+
+-- *** Errors *** --
+
+data ParserError
+  = AddressIsOutOfRange Integer
+  | InputValueIsOutOfRange Integer
+  | LabelIsAlreadyDefined Label
+  | LabelIsNotFound Label
+  | TooManyInstructions
+  deriving (Eq, Ord, Show)
+
+instance ShowErrorComponent ParserError where
+  showErrorComponent (AddressIsOutOfRange address) =
+    [i|address #{address} is out of range [0, #{maxInstructionCount - 1}]|]
+  showErrorComponent (InputValueIsOutOfRange value) =
+    [i|input value #{value} is out of range [-32768, 65535]|]
+  showErrorComponent (LabelIsAlreadyDefined label) =
+    [i|label "#{label}" is already defined|]
+  showErrorComponent (LabelIsNotFound label) =
+    [i|label "#{label}" is not found|]
+  showErrorComponent TooManyInstructions =
+    [i|program cannot have more than #{maxInstructionCount} microinstructions|]
+
+-- *** Constants *** --
+
+maxInstructionCount :: Int
+maxInstructionCount = 1024

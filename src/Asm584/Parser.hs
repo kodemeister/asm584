@@ -29,7 +29,6 @@ import qualified Data.Map as Map
 import Data.Maybe
 import Data.Set (Set)
 import qualified Data.Set as Set
-import Data.String.Interpolate (i)
 import Data.Text (Text)
 import qualified Data.Text as T
 import Data.Word
@@ -52,7 +51,7 @@ programP = do
     checkEnd statements = do
       end <- atEnd
       when (length statements == maxInstructionCount && not end) $
-        fail [i|number of microinstructions exceeds #{maxInstructionCount}|]
+        customFailure TooManyInstructions
       statements <$ eof
 
     getLabels = foldM collectLabel Map.empty . zip [0 ..] . map label
@@ -60,7 +59,7 @@ programP = do
     collectLabel acc (address, Just (label, offset)) = do
       let label' = T.toCaseFold label
       when (label' `Map.member` acc) $
-        failAt offset [i|label "#{label}" is already declared|]
+        customFailureAt offset (LabelIsAlreadyDefined label)
       pure $ Map.insert label' address acc
     collectLabel acc _ = pure acc
 
@@ -75,7 +74,7 @@ programP = do
     checkLocation labels (Location_Label label, offset) = do
       let label' = T.toCaseFold label
       when (label' `Map.notMember` labels) $
-        failAt offset [i|label "#{label}" is not found|]
+        customFailureAt offset (LabelIsNotFound label)
     checkLocation _ _ = pure ()
 
 statementP :: Parser Statement
@@ -163,8 +162,12 @@ locationP = do
   pure (location, offset)
 
 addressP :: Parser Address
-addressP =
-  fromInteger <$> integerInRange (0, toInteger maxInstructionCount - 1) decimal
+addressP = do
+  offset <- getOffset
+  address <- decimal
+  if address < toInteger maxInstructionCount
+    then pure $ fromInteger address
+    else customFailureAt offset (AddressIsOutOfRange address)
 
 -- | Parses a 16-bit input value in one of the following formats:
 -- 1. A 16-digit binary number.
@@ -172,9 +175,12 @@ addressP =
 -- 3. A hexadecimal number.
 -- 4. A signed or unsigned decimal number.
 inputValueP :: Parser Word16
-inputValueP =
-  fromInteger <$> integerInRange (-32768, 65535) (choice formats)
-    <?> "16-bit binary, decimal or hexadecimal number"
+inputValueP = do
+  offset <- getOffset
+  value <- choice formats <?> "16-bit binary, decimal or hexadecimal number"
+  if value >= -32768 && value <= 65535
+    then pure $ fromInteger value
+    else customFailureAt offset (InputValueIsOutOfRange value)
   where
     formats =
       [ try $ binaryN 16,
@@ -395,11 +401,6 @@ operations a b =
     ([a, Or, b], A_Or_B)
   ]
 
--- *** Constants *** --
-
-maxInstructionCount :: Int
-maxInstructionCount = 1024
-
 -- *** Utilities *** --
 
 parens :: Parser a -> Parser a
@@ -414,13 +415,6 @@ optionalPair a b =
       pure (Nothing, Nothing)
     ]
 
-integerInRange :: (Integer, Integer) -> Parser Integer -> Parser Integer
-integerInRange (min', max') p = do
-  offset <- getOffset
-  value <- p
-  if value >= min' && value <= max'
-    then pure value
-    else failAt offset [i|value is out of range [#{min'}, #{max'}]|]
-
-failAt :: SourceOffset -> String -> Parser a
-failAt offset = parseError . FancyError offset . Set.singleton . ErrorFail
+customFailureAt :: SourceOffset -> ParserError -> Parser a
+customFailureAt offset =
+  parseError . FancyError offset . Set.singleton . ErrorCustom

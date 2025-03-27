@@ -19,7 +19,6 @@
 
 module Asm584.CodeGen where
 
-import Asm584.Parser
 import Asm584.Types
 import Control.Monad
 import Data.Binary.Put
