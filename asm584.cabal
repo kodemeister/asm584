@@ -45,6 +45,7 @@ library
     exposed-modules:
         Asm584
         Asm584.CodeGen
+        Asm584.InstructionSet
         Asm584.Lexer
         Asm584.Parser
         Asm584.Types
