@@ -118,182 +118,182 @@ spec_parser = do
       testInstruction
         "RF := RF op WR"
         "RF2 := RF2 and WR"
-        (RF_Assign_RF_Op_WR A_And_B 2)
+        (RF_Assign_RF_Op_WR A_And_B 2, NoAlucin)
       testInstruction
         "WR := RF op WR"
         "РР := !РОН5 или РР"
-        (WR_Assign_RF_Op_WR Not_A_Or_B 5)
+        (WR_Assign_RF_Op_WR Not_A_Or_B 5, NoAlucin)
       testInstruction
         "DO := DI op WR"
         "DO := WR - DI - 1 + C"
-        (DO_Assign_DI_Op_WR B_Minus_A_Minus_One_Plus_ALUCIN)
+        (DO_Assign_DI_Op_WR B_Minus_A_Minus_One_Plus_ALUCIN, NeedsAlucin)
       testInstruction
         "WR := DI op WR"
         "WR=DI-WR-1+C"
-        (WR_Assign_DI_Op_WR A_Minus_B_Minus_One_Plus_ALUCIN)
+        (WR_Assign_DI_Op_WR A_Minus_B_Minus_One_Plus_ALUCIN, NeedsAlucin)
       testInstruction
         "WR := DI op XWR"
         "РР=ШИНвх или!РРР"
-        (WR_Assign_DI_Op_XWR A_Or_Not_B)
+        (WR_Assign_DI_Op_XWR A_Or_Not_B, NoAlucin)
       testInstruction
         "XWR := DI op WR"
         "xwr := wr + alucin"
-        (XWR_Assign_DI_Op_WR B_Plus_ALUCIN)
+        (XWR_Assign_DI_Op_WR B_Plus_ALUCIN, NeedsAlucin)
       testInstruction
         "XWR := DI op XWR"
         "ррр := !ррр + п"
-        (XWR_Assign_DI_Op_XWR Not_B_Plus_ALUCIN)
+        (XWR_Assign_DI_Op_XWR Not_B_Plus_ALUCIN, NeedsAlucin)
       testInstruction
         "DO := DI op XWR"
         "DO := !(DI xor XWR)"
-        (DO_Assign_DI_Op_XWR A_Xnor_B)
+        (DO_Assign_DI_Op_XWR A_Xnor_B, NoAlucin)
 
     describe "group 2: addition instructions" $ do
       testInstruction
         "XWR := RF + WR + ALUCIN"
         "XWR := RF1 + WR + ALUCIN"
-        (XWR_Assign_RF_Plus_WR_Plus_ALUCIN 1)
+        (XWR_Assign_RF_Plus_WR_Plus_ALUCIN 1, NeedsAlucin)
       testInstruction
         "WR := RF + DI + ALUCIN"
         "WR := RF2 + DI + C"
-        (WR_Assign_RF_Plus_DI_Plus_ALUCIN 2)
+        (WR_Assign_RF_Plus_DI_Plus_ALUCIN 2, NeedsAlucin)
       testInstruction
         "XWR := RF + DI + ALUCIN"
         "XWR:=RF3+DI+C"
-        (XWR_Assign_RF_Plus_DI_Plus_ALUCIN 3)
+        (XWR_Assign_RF_Plus_DI_Plus_ALUCIN 3, NeedsAlucin)
       testInstruction
         "RF := RF + DI + ALUCIN"
         "RF4  :=  RF4  +  DI  +  C  "
-        (RF_Assign_RF_Plus_DI_Plus_ALUCIN 4)
+        (RF_Assign_RF_Plus_DI_Plus_ALUCIN 4, NeedsAlucin)
       testInstruction
         "WR := RF + XWR + ALUCIN"
         "РР := РОН5 + РРР + П"
-        (WR_Assign_RF_Plus_XWR_Plus_ALUCIN 5)
+        (WR_Assign_RF_Plus_XWR_Plus_ALUCIN 5, NeedsAlucin)
       testInstruction
         "XWR := RF + XWR + ALUCIN"
         "РРР:=РОН6+РРР+П"
-        (XWR_Assign_RF_Plus_XWR_Plus_ALUCIN 6)
+        (XWR_Assign_RF_Plus_XWR_Plus_ALUCIN 6, NeedsAlucin)
       testInstruction
         "RF := XWR + ALUCIN"
         "РОН7  :=  РРР  +  П  "
-        (RF_Assign_XWR_Plus_ALUCIN 7)
+        (RF_Assign_XWR_Plus_ALUCIN 7, NeedsAlucin)
       testInstruction
         "XWR := WR + DI + ALUCIN"
         "xwr = wr + di + alucin"
-        XWR_Assign_WR_Plus_DI_Plus_ALUCIN
+        (XWR_Assign_WR_Plus_DI_Plus_ALUCIN, NeedsAlucin)
       testInstruction
         "DO := WR + DI + ALUCIN"
         "do=wr+di+alucin"
-        DO_Assign_WR_Plus_DI_Plus_ALUCIN
+        (DO_Assign_WR_Plus_DI_Plus_ALUCIN, NeedsAlucin)
       testInstruction
         "WR := XWR + DI + ALUCIN"
         "рр = ррр + шинвх + п"
-        WR_Assign_XWR_Plus_DI_Plus_ALUCIN
+        (WR_Assign_XWR_Plus_DI_Plus_ALUCIN, NeedsAlucin)
       testInstruction
         "XWR := XWR + DI + ALUCIN"
         "ррр=ррр+шинвх+п"
-        XWR_Assign_XWR_Plus_DI_Plus_ALUCIN
+        (XWR_Assign_XWR_Plus_DI_Plus_ALUCIN, NeedsAlucin)
       testInstruction
         "DO := XWR + ALUCIN"
         "ШВых := XWR + П"
-        DO_Assign_XWR_Plus_ALUCIN
+        (DO_Assign_XWR_Plus_ALUCIN, NeedsAlucin)
 
     describe "group 3: move instructions" $ do
-      testInstruction "RF := DI" "RF0 = DI" (RF_Assign_DI 0)
-      testInstruction "DO := RF" "DO = RF2" (DO_Assign_RF 2)
-      testInstruction "XWR := RF" "XWR = RF4" (XWR_Assign_RF 4)
-      testInstruction "WR := DI" "WR = DI" WR_Assign_DI
-      testInstruction "XWR := DI" "XWR = DI" XWR_Assign_DI
-      testInstruction "DO := DI" "DO = DI" DO_Assign_DI
+      testInstruction "RF := DI" "RF0 = DI" (RF_Assign_DI 0, NoAlucin)
+      testInstruction "DO := RF" "DO = RF2" (DO_Assign_RF 2, NoAlucin)
+      testInstruction "XWR := RF" "XWR = RF4" (XWR_Assign_RF 4, NoAlucin)
+      testInstruction "WR := DI" "WR = DI" (WR_Assign_DI, NoAlucin)
+      testInstruction "XWR := DI" "XWR = DI" (XWR_Assign_DI, NoAlucin)
+      testInstruction "DO := DI" "DO = DI" (DO_Assign_DI, NoAlucin)
 
     describe "group 4: double-precision shift/arithmetic instructions" $ do
       testInstruction
         "(WR, XWR) := RSL(WR - DI - 1 + ALUCIN, XWR)"
         "(WR, XWR) := RSL(WR - DI - 1 + ALUCIN, XWR)"
-        WRXWR_Assign_RSL_WRXWR_Minus_DI_Minus_One_Plus_ALUCIN
+        (WRXWR_Assign_RSL_WRXWR_Minus_DI_Minus_One_Plus_ALUCIN, NeedsAlucin)
       testInstruction
         "(WR, XWR) := RSL(WR + DI + ALUCIN, XWR)"
         "(WR, XWR) := RSL(WR + DI + ALUCIN, XWR)"
-        WRXWR_Assign_RSL_WRXWR_Plus_DI_Plus_ALUCIN
+        (WRXWR_Assign_RSL_WRXWR_Plus_DI_Plus_ALUCIN, NeedsAlucin)
       testInstruction
         "(WR, XWR) := RSL(WR - RF - 1 + ALUCIN, XWR)"
         "(WR, XWR) := RSL(WR - RF3 - 1 + ALUCIN, XWR)"
-        (WRXWR_Assign_RSL_WRXWR_Minus_RF_Minus_One_Plus_ALUCIN 3)
+        (WRXWR_Assign_RSL_WRXWR_Minus_RF_Minus_One_Plus_ALUCIN 3, NeedsAlucin)
       testInstruction
         "(WR, XWR) := RSL(WR + RF + ALUCIN, XWR)"
         "(WR, XWR) := RSL(WR + RF5 + ALUCIN, XWR)"
-        (WRXWR_Assign_RSL_WRXWR_Plus_RF_Plus_ALUCIN 5)
+        (WRXWR_Assign_RSL_WRXWR_Plus_RF_Plus_ALUCIN 5, NeedsAlucin)
       testInstruction
         "(WR, XWR) := ASR(WR + ALUCIN, XWR)"
         "(WR, XWR) := ASR(WR + ALUCIN, XWR)"
-        WRXWR_Assign_ASR_WRXWR_Plus_ALUCIN
+        (WRXWR_Assign_ASR_WRXWR_Plus_ALUCIN, NeedsAlucin)
       testInstruction
         "(WR, XWR) := ASR(WR - DI - 1 + ALUCIN, XWR)"
         "(WR, XWR) := ASR(WR - DI - 1 + ALUCIN, XWR)"
-        WRXWR_Assign_ASR_WRXWR_Minus_DI_Minus_One_Plus_ALUCIN
+        (WRXWR_Assign_ASR_WRXWR_Minus_DI_Minus_One_Plus_ALUCIN, NeedsAlucin)
       testInstruction
         "(WR, XWR) := ASR(WR + DI + ALUCIN, XWR)"
         "(WR, XWR) := ASR(WR + DI + ALUCIN, XWR)"
-        WRXWR_Assign_ASR_WRXWR_Plus_DI_Plus_ALUCIN
+        (WRXWR_Assign_ASR_WRXWR_Plus_DI_Plus_ALUCIN, NeedsAlucin)
       testInstruction
         "(WR, XWR) := ASR(WR - RF - 1 + ALUCIN, XWR)"
         "(WR, XWR) := ASR(WR - RF1 - 1 + ALUCIN, XWR)"
-        (WRXWR_Assign_ASR_WRXWR_Minus_RF_Minus_One_Plus_ALUCIN 1)
+        (WRXWR_Assign_ASR_WRXWR_Minus_RF_Minus_One_Plus_ALUCIN 1, NeedsAlucin)
       testInstruction
         "(WR, XWR) := ASR(WR + RF + ALUCIN, XWR)"
         "(WR, XWR) := ASR(WR + RF7 + ALUCIN, XWR)"
-        (WRXWR_Assign_ASR_WRXWR_Plus_RF_Plus_ALUCIN 7)
+        (WRXWR_Assign_ASR_WRXWR_Plus_RF_Plus_ALUCIN 7, NeedsAlucin)
 
     describe "group 5: single-precision shift instructions" $ do
       testInstruction
         "WR := ASR(WR + ALUCIN)"
         "wr = asr ( wr+c )"
-        WR_Assign_ASR_WR_Plus_ALUCIN
+        (WR_Assign_ASR_WR_Plus_ALUCIN, NeedsAlucin)
       testInstruction
         "WR := RSR(WR + ALUCIN)"
         "wr = rsr ( wr+c )"
-        WR_Assign_RSR_WR_Plus_ALUCIN
+        (WR_Assign_RSR_WR_Plus_ALUCIN, NeedsAlucin)
       testInstruction
         "WR := ASL(WR + ALUCIN)"
         "wr = asl ( wr+c )"
-        WR_Assign_ASL_WR_Plus_ALUCIN
+        (WR_Assign_ASL_WR_Plus_ALUCIN, NeedsAlucin)
       testInstruction
         "WR := RSL(WR + ALUCIN)"
         "wr = rsl ( wr+c )"
-        WR_Assign_RSL_WR_Plus_ALUCIN
+        (WR_Assign_RSL_WR_Plus_ALUCIN, NeedsAlucin)
       testInstruction
         "WR := LSR(WR + ALUCIN)"
         "wr = lsr ( wr+c )"
-        WR_Assign_LSR_WR_Plus_ALUCIN
+        (WR_Assign_LSR_WR_Plus_ALUCIN, NeedsAlucin)
       testInstruction
         "WR := LSL(WR + ALUCIN)"
         "wr = lsl ( wr+c )"
-        WR_Assign_LSL_WR_Plus_ALUCIN
+        (WR_Assign_LSL_WR_Plus_ALUCIN, NeedsAlucin)
 
     describe "group 6: double-precision shift instructions" $ do
       testInstruction
         "(WR, XWR) := RSR(WR + ALUCIN, XWR)"
         "(РР, РРР) := СЦП(РР + П, РРР)"
-        WRXWR_Assign_RSR_WRXWR_Plus_ALUCIN
+        (WRXWR_Assign_RSR_WRXWR_Plus_ALUCIN, NeedsAlucin)
       testInstruction
         "(WR, XWR) := ASL(WR + ALUCIN, XWR)"
         "(РР, РРР) := САЛ(РР + П, РРР)"
-        WRXWR_Assign_ASL_WRXWR_Plus_ALUCIN
+        (WRXWR_Assign_ASL_WRXWR_Plus_ALUCIN, NeedsAlucin)
       testInstruction
         "(WR, XWR) := RSL(WR + ALUCIN, XWR)"
         "(РР, РРР) := СЦЛ(РР + П, РРР)"
-        WRXWR_Assign_RSL_WRXWR_Plus_ALUCIN
+        (WRXWR_Assign_RSL_WRXWR_Plus_ALUCIN, NeedsAlucin)
       testInstruction
         "(WR, XWR) := LSR(WR + ALUCIN, XWR)"
         "(РР, РРР) := СЛП(РР + П, РРР)"
-        WRXWR_Assign_LSR_WRXWR_Plus_ALUCIN
+        (WRXWR_Assign_LSR_WRXWR_Plus_ALUCIN, NeedsAlucin)
       testInstruction
         "(WR, XWR) := LSL(WR + ALUCIN, XWR)"
         "(РР, РРР) := СЛЛ(РР + П, РРР)"
-        WRXWR_Assign_LSL_WRXWR_Plus_ALUCIN
+        (WRXWR_Assign_LSL_WRXWR_Plus_ALUCIN, NeedsAlucin)
 
     describe "special instructions" $ do
-      testInstruction "NOP" "НОП" No_Operation
+      testInstruction "NOP" "НОП" (No_Operation, NoAlucin)
 
   describe "operations" $ do
     describe "arithmetic" $ do

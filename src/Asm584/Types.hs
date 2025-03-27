@@ -39,7 +39,7 @@ type RFNumber = Int
 -- | Whether a breakpoint is set or not.
 type Breakpoint = Bool
 
--- | Value of ALUCIN specified after the instruction (ALUCIN=0 or ALUCIN=1).
+-- | Value of ALUCIN (0 or 1).
 type AlucinValue = Bool
 
 -- | Character offset in the source code.
@@ -138,6 +138,13 @@ data Operation
   | Not_A_Or_B
   | A_Or_B
   deriving (Enum, Eq, Ord, Show)
+
+data Alucin
+  = -- | Instruction does not use ALUCIN.
+    NoAlucin
+  | -- | Instruction requires a value of ALUCIN after the mnemonic.
+    NeedsAlucin
+  deriving (Eq, Show)
 
 data ControlStatement
   = ControlStatement_If

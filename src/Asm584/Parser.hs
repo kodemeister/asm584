@@ -22,12 +22,10 @@ module Asm584.Parser where
 import Asm584.Lexer
 import Asm584.Types
 import Control.Monad
-import Control.Monad.Extra (whenMaybe)
 import Data.Either.Extra (mapLeft)
 import Data.Functor
 import qualified Data.Map as Map
 import Data.Maybe
-import Data.Set (Set)
 import qualified Data.Set as Set
 import Data.Text (Text)
 import qualified Data.Text as T
@@ -81,8 +79,10 @@ statementP :: Parser Statement
 statementP = do
   label <- optional $ try labelP
   breakpoint <- isJust <$> optional breakpointP
-  instruction <- instructionP
-  alucinValue <- whenMaybe (hasAlucin instruction) alucinValueP
+  (instruction, alucin) <- instructionP
+  alucinValue <- case alucin of
+    NoAlucin -> pure Nothing
+    NeedsAlucin -> Just <$> alucinValueP
   (controlStatement, comment) <- optionalPair controlStatementP commentP
   pure Statement {..}
 
@@ -107,7 +107,7 @@ breakpointP = breakP <?> "breakpoint"
 -- input string "DO := XWR + ALUCIN" matches both instruction "DO := DI op XWR"
 -- with operation "B + ALUCIN" and the literal instruction "DO := XWR + ALUCIN".
 -- The parser will choose the latter one since it comes later on the list.
-instructionP :: Parser Instruction
+instructionP :: Parser (Instruction, Alucin)
 instructionP = buildParser (reverse instructions) <?> "microinstruction"
 
 operationP :: Tok -> Tok -> Parser Operation
@@ -218,16 +218,9 @@ buildParser = choice . map sequenceP . groupSequences . map splitSequence
     sequenceP (Nothing, ([], a) : _) = pure a
     sequenceP (Nothing, _) = error "invalid association list of token sequences"
 
-hasAlucin :: Instruction -> Bool
-hasAlucin instr = instr `Set.member` instructionsWithAlucin
-
-instructionsWithAlucin :: Set Instruction
-instructionsWithAlucin =
-  Set.fromList [instr | (ts, instr) <- instructions, ALUCIN `elem` ts]
-
-instructions :: [(TokenSequence, Instruction)]
+instructions :: [(TokenSequence, (Instruction, Alucin))]
 instructions =
-  concat
+  map checkAlucin . concat $
     [ -- Group 1: arithmetic/logical instructions.
       [ ([RF n, Assign] ++ ts, RF_Assign_RF_Op_WR op n)
         | n <- rfNumbers,
@@ -371,6 +364,8 @@ instructions =
       [([NOP], No_Operation)]
     ]
   where
+    checkAlucin (ts, instr) =
+      (ts, (instr, if ALUCIN `elem` ts then NeedsAlucin else NoAlucin))
     rfNumbers = [0 .. 7]
     wrShift shift expr = [WR, Assign, shift, OpenParen] ++ expr ++ [CloseParen]
     wrxwrShift shift expr =
