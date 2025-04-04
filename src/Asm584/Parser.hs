@@ -24,7 +24,6 @@ import Asm584.Lexer
 import Asm584.Types
 import Control.Applicative.Permutations
 import Control.Monad
-import Data.Either.Extra (mapLeft)
 import Data.Functor
 import qualified Data.Map as Map
 import Data.Maybe
@@ -37,8 +36,8 @@ import Text.Megaparsec.Error.Builder
 
 -- *** Parsers *** --
 
-parseProgram :: FilePath -> Text -> Either String Program
-parseProgram file input = mapLeft errorBundlePretty (parse programP file input)
+parseProgram :: FilePath -> Text -> Either ParserErrors Program
+parseProgram = parse programP
 
 programP :: Parser Program
 programP = do

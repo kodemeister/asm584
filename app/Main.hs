@@ -19,5 +19,56 @@
 
 module Main (main) where
 
+import Asm584
+import Control.Exception
+import Data.ByteString (ByteString)
+import qualified Data.ByteString as B
+import Data.Encoding
+import Data.Encoding.CP1251
+import Data.Maybe
+import Data.Text (Text)
+import qualified Data.Text as T
+import qualified Data.Text.Encoding as T
+import Options.Applicative
+import System.Environment
+import System.Exit
+import System.FilePath
+
 main :: IO ()
-main = undefined
+main = handle showAppError $ do
+  options <- parseCommandLine
+  input <- readInputFile options
+  output <- assembleProgram options input
+  writeOutputFile options output
+
+parseCommandLine :: IO Options
+parseCommandLine = do
+  result <- parseArguments <$> getArgs
+  case result of
+    Success options -> pure options
+    _ -> handleParseResult result
+
+readInputFile :: Options -> IO Text
+readInputFile Options {inputFile} = do
+  bs <- B.readFile inputFile `catchIO` \_ -> throwIO $ CannotReadFile inputFile
+  case (T.decodeUtf8' bs, decodeStrictByteStringExplicit CP1251 bs) of
+    (Right text, _) -> pure text
+    (_, Right string) -> pure $ T.pack string
+    _ -> throwIO $ CannotDecodeFile inputFile
+
+assembleProgram :: Options -> Text -> IO ByteString
+assembleProgram Options {inputFile} input =
+  case parseProgram inputFile input of
+    Left errors -> throwIO $ CannotParseProgram errors
+    Right program -> pure $ encodeProgram program
+
+writeOutputFile :: Options -> ByteString -> IO ()
+writeOutputFile Options {inputFile, outputFile} output = do
+  let file = fromMaybe (replaceExtension inputFile "x584") outputFile
+  B.writeFile file output `catchIO` \_ -> throwIO $ CannotWriteFile file
+
+showAppError :: AppError -> IO ()
+showAppError = die . displayException
+
+catchIO :: IO a -> (IOException -> IO a) -> IO a
+catchIO = catch

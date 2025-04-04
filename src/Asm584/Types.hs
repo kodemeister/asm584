@@ -19,6 +19,9 @@
 
 module Asm584.Types where
 
+import Control.Exception
+import Data.Char
+import Data.List
 import Data.Map (Map)
 import Data.String.Interpolate (i)
 import Data.Text (Text)
@@ -189,6 +192,8 @@ data Location
 
 type Parser = Parsec ParserError Text
 
+type ParserErrors = ParseErrorBundle Text ParserError
+
 -- *** Tokens *** --
 
 type TokenSequence = [Tok]
@@ -252,6 +257,24 @@ data Tok
   deriving (Eq, Ord, Show)
 
 -- *** Errors *** --
+
+data AppError
+  = CannotReadFile FilePath
+  | CannotDecodeFile FilePath
+  | CannotParseProgram ParserErrors
+  | CannotWriteFile FilePath
+  deriving (Show)
+
+instance Exception AppError where
+  displayException (CannotReadFile file) =
+    [i|Cannot read file "#{file}". Please check if the file exists.|]
+  displayException (CannotDecodeFile file) =
+    [i|Cannot decode file "#{file}". Please check if the file is saved in |]
+      ++ [i|UTF-8 or Windows-1251 encoding.|]
+  displayException (CannotParseProgram errors) =
+    dropWhileEnd isSpace (errorBundlePretty errors)
+  displayException (CannotWriteFile file) =
+    [i|Cannot write file "#{file}". Please check if the folder is writable.|]
 
 data ParserError
   = AddressIsOutOfRange Integer
