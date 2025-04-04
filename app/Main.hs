@@ -33,9 +33,10 @@ import Options.Applicative
 import System.Environment
 import System.Exit
 import System.FilePath
+import System.IO.CodePage (withCP65001)
 
 main :: IO ()
-main = handle showAppError $ do
+main = withCP65001 . handle showAppError $ do
   options <- parseCommandLine
   input <- readInputFile options
   output <- assembleProgram options input
