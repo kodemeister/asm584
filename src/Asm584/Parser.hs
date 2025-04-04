@@ -28,12 +28,12 @@ import Data.Either.Extra (mapLeft)
 import Data.Functor
 import qualified Data.Map as Map
 import Data.Maybe
-import qualified Data.Set as Set
 import Data.Text (Text)
 import qualified Data.Text as T
 import Data.Word
 import Text.Megaparsec hiding (label)
 import Text.Megaparsec.Char
+import Text.Megaparsec.Error.Builder
 
 -- *** Parsers *** --
 
@@ -227,5 +227,4 @@ parens :: Parser a -> Parser a
 parens = between openParenP closeParenP
 
 customFailureAt :: SourceOffset -> ParserError -> Parser a
-customFailureAt offset =
-  parseError . FancyError offset . Set.singleton . ErrorCustom
+customFailureAt offset = parseError . errFancy offset . fancy . ErrorCustom
