@@ -79,7 +79,8 @@ programP = do
 
 statementP :: Parser Statement
 statementP = do
-  label <- optional $ try labelP
+  offset <- getOffset
+  label <- optional . try . replaceError offset "label" $ labelP
   breakpoint <- breakpointP
   (instruction, alucin) <- instructionP
   alucinValue <- case alucin of
@@ -89,6 +90,7 @@ statementP = do
     runPermutation $ (,) <$> toPerm controlStatementP <*> toPerm commentP
   pure Statement {..}
   where
+    replaceError offset name = region (const . err offset . elabel $ name)
     toPerm p = toPermutationWithDefault Nothing (Just <$> p)
 
 -- | Parses a label (an identifier followed by colon character).
@@ -98,7 +100,7 @@ statementP = do
 labelP :: Parser (Label, SourceOffset)
 labelP = do
   offset <- getOffset
-  label <- (identifierP <?> "label") <* notFollowedBy assignP <* colonP
+  label <- identifierP <* notFollowedBy assignP <* colonP <?> "label"
   pure (label, offset)
 
 breakpointP :: Parser Breakpoint
