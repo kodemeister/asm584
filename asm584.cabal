@@ -27,7 +27,7 @@ common common-options
         containers >=0.6.5.1 && <0.9,
         encoding ^>=0.10,
         filepath >=1.4.2.1 && <1.6,
-        leb128-binary ^>=0.1.3,
+        leb128-binary ==0.1.1,
         megaparsec >=9.2.1 && <9.8,
         optparse-applicative ^>=0.18.1.0,
         parser-combinators ^>=1.3.0,
