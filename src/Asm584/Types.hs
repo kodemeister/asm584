@@ -25,6 +25,14 @@ import Data.Text (Text)
 import Data.Word
 import Text.Megaparsec hiding (label)
 
+-- *** Command-line arguments *** --
+
+data Options = Options
+  { outputFile :: Maybe FilePath,
+    inputFile :: FilePath
+  }
+  deriving (Eq, Show)
+
 -- *** Assembly code representation *** --
 
 -- | Symbolic label.

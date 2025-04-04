@@ -19,6 +19,7 @@
 
 module Asm584
   ( module Asm584.CodeGen,
+    module Asm584.CommandLine,
     module Asm584.InstructionSet,
     module Asm584.Lexer,
     module Asm584.Parser,
@@ -27,6 +28,7 @@ module Asm584
 where
 
 import Asm584.CodeGen
+import Asm584.CommandLine
 import Asm584.InstructionSet
 import Asm584.Lexer
 import Asm584.Parser
