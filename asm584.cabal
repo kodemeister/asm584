@@ -2,37 +2,48 @@ cabal-version:      3.0
 name:               asm584
 version:            0.1.0.0
 synopsis:           A simple assembler for K584VM1 microprocessor
--- description:
+description:
+    asm584 translates programs written in K584VM1 assembly language into binary
+    .x584 files. The resulting files can be opened in X584 simulator for further
+    editing and debugging.
+
 homepage:           https://github.com/kodemeister/asm584
+bug-reports:        https://github.com/kodemeister/asm584/issues
 license:            LGPL-3.0-or-later
 license-file:       LICENSE
 author:             Arthur Kasimov
 maintainer:         kodemeister@outlook.com
--- copyright:
+copyright:          (C) 2025 Arthur Kasimov
 category:           Development
 build-type:         Simple
 extra-doc-files:
     CHANGELOG.md
     README.md
 
--- extra-source-files:
+tested-with:
+    GHC == 8.10.7,
+    GHC == 9.4.8
+
+source-repository head
+    type:             git
+    location:         https://github.com/kodemeister/asm584
 
 common common-options
     ghc-options: -Wall
     build-depends:
-        base >=4.14.3.0 && <5.0,
-        binary ^>=0.8.8.0,
-        bytestring >=0.10.12.0 && <0.13,
-        code-page ^>=0.2.1,
-        containers >=0.6.5.1 && <0.9,
-        encoding ^>=0.10,
-        filepath >=1.4.2.1 && <1.6,
-        leb128-binary ==0.1.1,
-        megaparsec >=9.2.1 && <9.8,
-        optparse-applicative ^>=0.18.1.0,
-        parser-combinators ^>=1.3.0,
-        string-interpolate ^>=0.3.4.0,
-        text >=1.2.4.1 && <2.2
+        base >= 4.14.3.0 && < 5.0,
+        binary ^>= 0.8.8.0,
+        bytestring >= 0.10.12.0 && < 0.13,
+        code-page ^>= 0.2.1,
+        containers >= 0.6.5.1 && < 0.9,
+        encoding ^>= 0.10,
+        filepath >= 1.4.2.1 && < 1.6,
+        leb128-binary == 0.1.1,
+        megaparsec >= 9.2.1 && < 9.8,
+        optparse-applicative ^>= 0.18.1.0,
+        parser-combinators ^>= 1.3.0,
+        string-interpolate ^>= 0.3.4.0,
+        text >= 1.2.4.1 && < 2.2
 
     default-language: Haskell2010
     default-extensions:
@@ -46,6 +57,7 @@ common common-options
 
 library
     import:           common-options
+    hs-source-dirs:   src
     exposed-modules:
         Asm584
         Asm584.CodeGen
@@ -57,37 +69,30 @@ library
 
     other-modules:    Paths_asm584
     autogen-modules:  Paths_asm584
-    -- other-extensions:
-    -- build-depends:
-    hs-source-dirs:   src
 
 executable asm584
     import:           common-options
+    hs-source-dirs:   app
     main-is:          Main.hs
-    -- other-modules:
-    -- other-extensions:
     build-depends:
         asm584
 
-    hs-source-dirs:   app
-
 test-suite asm584-test
     import:           common-options
+    type:             exitcode-stdio-1.0
+    hs-source-dirs:   test
+    main-is:          Main.hs
     other-modules:
         CodeGenTest
         LexerTest
         ParserTest
 
-    -- other-extensions:
-    type:             exitcode-stdio-1.0
-    hs-source-dirs:   test
-    main-is:          Main.hs
     build-depends:
         asm584,
-        hspec ^>=2.11.12,
-        hspec-megaparsec ^>=2.2.0,
-        tasty ^>=1.5.3,
-        tasty-hspec ^>=1.2.0.4
+        hspec ^>= 2.11.12,
+        hspec-megaparsec ^>= 2.2.0,
+        tasty ^>= 1.5.3,
+        tasty-hspec ^>= 1.2.0.4
 
     build-tool-depends:
-        tasty-discover:tasty-discover ^>=5.0.1
+        tasty-discover:tasty-discover ^>= 5.0.1
