@@ -1,0 +1,5 @@
+snapshot: lts-18.28
+
+extra-deps:
+  - encoding-0.10.1
+  - leb128-binary-0.1.1
