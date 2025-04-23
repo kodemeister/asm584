@@ -20,6 +20,7 @@
 module Asm584.InstructionSet where
 
 import Asm584.Types
+import Data.List
 
 instructions :: [(TokenSequence, Instruction, Alucin)]
 instructions =
@@ -179,28 +180,52 @@ instructions =
 
 operations :: Tok -> Tok -> [(TokenSequence, Operation, Alucin)]
 operations a b =
-  [ -- Arithmetic operations.
-    ([Not, ALUCIN], Not_ALUCIN, NeedsAlucin),
-    ( [b, Minus, a, Minus, One, Plus, ALUCIN],
-      B_Minus_A_Minus_One_Plus_ALUCIN,
-      NeedsAlucin
-    ),
-    ( [a, Minus, b, Minus, One, Plus, ALUCIN],
-      A_Minus_B_Minus_One_Plus_ALUCIN,
-      NeedsAlucin
-    ),
-    ([a, Plus, b, Plus, ALUCIN], A_Plus_B_Plus_ALUCIN, NeedsAlucin),
-    ([b, Plus, ALUCIN], B_Plus_ALUCIN, NeedsAlucin),
-    ([Not, b, Plus, ALUCIN], Not_B_Plus_ALUCIN, NeedsAlucin),
-    ([a, Plus, ALUCIN], A_Plus_ALUCIN, NeedsAlucin),
-    ([Not, a, Plus, ALUCIN], Not_A_Plus_ALUCIN, NeedsAlucin),
-    -- Logical operations.
-    ([a, And, b], A_And_B, NoAlucin),
-    ([a, Xor, b], A_Xor_B, NoAlucin),
-    ([Not, OpenParen, a, Xor, b, CloseParen], A_Xnor_B, NoAlucin),
-    ([Not, a, And, b], Not_A_And_B, NoAlucin),
-    ([a, And, Not, b], A_And_Not_B, NoAlucin),
-    ([a, Or, Not, b], A_Or_Not_B, NoAlucin),
-    ([Not, a, Or, b], Not_A_Or_B, NoAlucin),
-    ([a, Or, b], A_Or_B, NoAlucin)
+  concat
+    [ -- Arithmetic operations.
+      operation expr1 Not_ALUCIN,
+      operation (expr4 b a) B_Minus_A_Minus_One_Plus_ALUCIN,
+      operation (expr4 a b) A_Minus_B_Minus_One_Plus_ALUCIN,
+      operation (expr3 a b) A_Plus_B_Plus_ALUCIN,
+      operation (expr2 [b]) B_Plus_ALUCIN,
+      operation (expr2 [Not, b]) Not_B_Plus_ALUCIN,
+      operation (expr2 [a]) A_Plus_ALUCIN,
+      operation (expr2 [Not, a]) Not_A_Plus_ALUCIN,
+      -- Logical operations.
+      operation (op2 [a] And [b]) A_And_B,
+      operation (op2 [a] Xor [b]) A_Xor_B,
+      operation (inverted $ op2 [a] Xor [b]) A_Xnor_B,
+      operation (op2 [Not, a] And [b]) Not_A_And_B,
+      operation (op2 [a] And [Not, b]) A_And_Not_B,
+      operation (op2 [a] Or [Not, b]) A_Or_Not_B,
+      operation (op2 [Not, a] Or [b]) Not_A_Or_B,
+      operation (op2 [a] Or [b]) A_Or_B
+    ]
+  where
+    operation expr op = [(ts, op, alucin) | (ts, alucin) <- expr]
+    inverted expr =
+      [([Not, OpenParen] ++ ts ++ [CloseParen], alucin) | (ts, alucin) <- expr]
+
+-- | Returns token sequences for the arithmetic expression "!ALUCIN".
+expr1 :: [(TokenSequence, Alucin)]
+expr1 = [([Not, ALUCIN], NeedsAlucin)]
+
+-- | Returns token sequences for the arithmetic expression "A + ALUCIN".
+expr2 :: TokenSequence -> [(TokenSequence, Alucin)]
+expr2 a =
+  [(ts, NeedsAlucin) | ts <- [a ++ [Plus, ALUCIN], [ALUCIN, Plus] ++ a]]
+
+-- | Returns token sequences for the arithmetic expression "A + B + ALUCIN".
+expr3 :: Tok -> Tok -> [(TokenSequence, Alucin)]
+expr3 a b =
+  [(intersperse Plus p, NeedsAlucin) | p <- permutations [a, b, ALUCIN]]
+
+-- | Returns token sequences for the arithmetic expression "A - B - 1 + ALUCIN".
+expr4 :: Tok -> Tok -> [(TokenSequence, Alucin)]
+expr4 a b =
+  [ (dropWhile (== Plus) (concat p), NeedsAlucin)
+    | p <- permutations [[Plus, a], [Minus, b], [Minus, One], [Plus, ALUCIN]]
   ]
+
+-- | Returns token sequences for the logical expression "A op B".
+op2 :: TokenSequence -> Tok -> TokenSequence -> [(TokenSequence, Alucin)]
+op2 a op b = [(ts, NoAlucin) | ts <- [a ++ op : b, b ++ op : a]]

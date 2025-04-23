@@ -356,6 +356,38 @@ spec_parser = do
       testOperation "!A or B" (RF 1) WR "!РОН1 или РР" (Not_A_Or_B, NoAlucin)
       testOperation "A or B" (RF 7) WR "RF7 или WR" (A_Or_B, NoAlucin)
 
+    describe "reordered operands" $ do
+      testOperationWithReorderedOperands
+        "A + ALUCIN"
+        (RF 0)
+        WR
+        "ALUCIN + RF0"
+        (A_Plus_ALUCIN, NeedsAlucin)
+      testOperationWithReorderedOperands
+        "A or !B"
+        (RF 1)
+        WR
+        "!WR or RF1"
+        (A_Or_Not_B, NoAlucin)
+      testOperationWithReorderedOperands
+        "A + B + ALUCIN"
+        DI
+        WR
+        "WR + DI + ALUCIN"
+        (A_Plus_B_Plus_ALUCIN, NeedsAlucin)
+      testOperationWithReorderedOperands
+        "A - B - 1 + ALUCIN"
+        DI
+        XWR
+        "ALUCIN - XWR + DI - 1"
+        (A_Minus_B_Minus_One_Plus_ALUCIN, NeedsAlucin)
+      testOperationWithReorderedOperands
+        "B - A - 1 + ALUCIN"
+        DI
+        XWR
+        "-DI + XWR + ALUCIN - 1"
+        (B_Minus_A_Minus_One_Plus_ALUCIN, NeedsAlucin)
+
   describe "control statements" $ do
     it "parses 'if' statement without 'else' branch" $
       parse controlStatementP "" "if ALUCOUT then label1"
@@ -418,4 +450,11 @@ spec_parser = do
 
     testOperation name a b input output =
       it [i|parses an operation '#{name :: String}'|] $
+        parse (operationP a b) "" input `shouldParse` output
+
+    testOperationWithReorderedOperands name =
+      testOperationWith name "reordered operands"
+
+    testOperationWith name with a b input output =
+      it [i|parses an operation '#{name :: String}' with #{with :: String}|] $
         parse (operationP a b) "" input `shouldParse` output
