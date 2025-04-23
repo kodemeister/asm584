@@ -26,7 +26,6 @@ import Control.Applicative.Permutations
 import Control.Monad
 import Data.Functor
 import qualified Data.Map as Map
-import Data.Maybe
 import Data.Text (Text)
 import qualified Data.Text as T
 import Data.Word
@@ -116,8 +115,8 @@ breakpointP = option BreakpointUnset (BreakpointSet <$ breakP) <?> "breakpoint"
 instructionP :: Parser (Instruction, Alucin)
 instructionP = buildParser (reverse instructions) <?> "microinstruction"
 
-operationP :: Tok -> Tok -> Parser Operation
-operationP a b = buildParser $ operations a b
+operationP :: Tok -> Tok -> Parser (Operation, Alucin)
+operationP a b = buildParser (operations a b) <?> "operation"
 
 alucinValueP :: Parser AlucinValue
 alucinValueP =
@@ -196,8 +195,8 @@ inputValueP = do
       ]
 
 -- | Builds a parser from an association list of token sequences. The resulting
--- parser will match the input stream against all token sequences and return the
--- associated value "a" if it finds any matching sequence.
+-- parser will compare the input stream against all token sequences and return
+-- the associated value "a" along with "Alucin" upon the first match.
 --
 -- The function basically performs the following steps:
 -- 1. Splits each token sequence into the first token and the rest of sequence.
@@ -205,10 +204,11 @@ inputValueP = do
 -- 3. For each group it builds a parser that accepts the first token and then
 --    recursively parses the rest of sequences.
 -- 4. Combines all group parsers via 'choice' combinator.
-buildParser :: [(TokenSequence, a)] -> Parser a
+buildParser :: [(TokenSequence, a, Alucin)] -> Parser (a, Alucin)
 buildParser = choice . map sequenceP . groupSequences . map splitSequence
   where
-    splitSequence (ts, a) = (listToMaybe ts, [(drop 1 ts, a)])
+    splitSequence (t : ts, a, alucin) = (Just t, [(ts, a, alucin)])
+    splitSequence ([], a, alucin) = (Nothing, [([], a, alucin)])
 
     -- NOTE: We sort groups by their first token in the descending order so that
     -- (Just tok) keys come first and Nothing key comes last. This implements
@@ -218,8 +218,8 @@ buildParser = choice . map sequenceP . groupSequences . map splitSequence
     -- each group.
     groupSequences = Map.toDescList . Map.fromListWith (++) . reverse
 
-    sequenceP (Just tok, tss) = tokenP tok *> buildParser tss
-    sequenceP (Nothing, ([], a) : _) = pure a
+    sequenceP (Just t, tss) = tokenP t *> buildParser tss
+    sequenceP (Nothing, ([], a, alucin) : _) = pure (a, alucin)
     sequenceP (Nothing, _) = error "invalid association list of token sequences"
 
 -- *** Utilities *** --

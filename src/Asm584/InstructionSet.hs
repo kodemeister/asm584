@@ -21,35 +21,35 @@ module Asm584.InstructionSet where
 
 import Asm584.Types
 
-instructions :: [(TokenSequence, (Instruction, Alucin))]
+instructions :: [(TokenSequence, Instruction, Alucin)]
 instructions =
   map checkAlucin . concat $
     [ -- Group 1: arithmetic/logical instructions.
       [ ([RF n, Assign] ++ ts, RF_Assign_RF_Op_WR op n)
         | n <- rfNumbers,
-          (ts, op) <- operations (RF n) WR
+          (ts, op, _) <- operations (RF n) WR
       ],
       [ ([WR, Assign] ++ ts, WR_Assign_RF_Op_WR op n)
         | n <- rfNumbers,
-          (ts, op) <- operations (RF n) WR
+          (ts, op, _) <- operations (RF n) WR
       ],
       [ ([DO, Assign] ++ ts, DO_Assign_DI_Op_WR op)
-        | (ts, op) <- operations DI WR
+        | (ts, op, _) <- operations DI WR
       ],
       [ ([WR, Assign] ++ ts, WR_Assign_DI_Op_WR op)
-        | (ts, op) <- operations DI WR
+        | (ts, op, _) <- operations DI WR
       ],
       [ ([WR, Assign] ++ ts, WR_Assign_DI_Op_XWR op)
-        | (ts, op) <- operations DI XWR
+        | (ts, op, _) <- operations DI XWR
       ],
       [ ([XWR, Assign] ++ ts, XWR_Assign_DI_Op_WR op)
-        | (ts, op) <- operations DI WR
+        | (ts, op, _) <- operations DI WR
       ],
       [ ([XWR, Assign] ++ ts, XWR_Assign_DI_Op_XWR op)
-        | (ts, op) <- operations DI XWR
+        | (ts, op, _) <- operations DI XWR
       ],
       [ ([DO, Assign] ++ ts, DO_Assign_DI_Op_XWR op)
-        | (ts, op) <- operations DI XWR
+        | (ts, op, _) <- operations DI XWR
       ],
       -- Group 2: addition instructions.
       [ ( [XWR, Assign, RF n, Plus, WR, Plus, ALUCIN],
@@ -168,7 +168,7 @@ instructions =
     ]
   where
     checkAlucin (ts, instr) =
-      (ts, (instr, if ALUCIN `elem` ts then NeedsAlucin else NoAlucin))
+      (ts, instr, if ALUCIN `elem` ts then NeedsAlucin else NoAlucin)
     rfNumbers = [0 .. 7]
     wrShift shift expr = [WR, Assign, shift, OpenParen] ++ expr ++ [CloseParen]
     wrxwrShift shift expr =
@@ -177,24 +177,30 @@ instructions =
         ++ [Comma, XWR, CloseParen]
     wrPlusAlucin = [WR, Plus, ALUCIN]
 
-operations :: Tok -> Tok -> [(TokenSequence, Operation)]
+operations :: Tok -> Tok -> [(TokenSequence, Operation, Alucin)]
 operations a b =
   [ -- Arithmetic operations.
-    ([Not, ALUCIN], Not_ALUCIN),
-    ([b, Minus, a, Minus, One, Plus, ALUCIN], B_Minus_A_Minus_One_Plus_ALUCIN),
-    ([a, Minus, b, Minus, One, Plus, ALUCIN], A_Minus_B_Minus_One_Plus_ALUCIN),
-    ([a, Plus, b, Plus, ALUCIN], A_Plus_B_Plus_ALUCIN),
-    ([b, Plus, ALUCIN], B_Plus_ALUCIN),
-    ([Not, b, Plus, ALUCIN], Not_B_Plus_ALUCIN),
-    ([a, Plus, ALUCIN], A_Plus_ALUCIN),
-    ([Not, a, Plus, ALUCIN], Not_A_Plus_ALUCIN),
+    ([Not, ALUCIN], Not_ALUCIN, NeedsAlucin),
+    ( [b, Minus, a, Minus, One, Plus, ALUCIN],
+      B_Minus_A_Minus_One_Plus_ALUCIN,
+      NeedsAlucin
+    ),
+    ( [a, Minus, b, Minus, One, Plus, ALUCIN],
+      A_Minus_B_Minus_One_Plus_ALUCIN,
+      NeedsAlucin
+    ),
+    ([a, Plus, b, Plus, ALUCIN], A_Plus_B_Plus_ALUCIN, NeedsAlucin),
+    ([b, Plus, ALUCIN], B_Plus_ALUCIN, NeedsAlucin),
+    ([Not, b, Plus, ALUCIN], Not_B_Plus_ALUCIN, NeedsAlucin),
+    ([a, Plus, ALUCIN], A_Plus_ALUCIN, NeedsAlucin),
+    ([Not, a, Plus, ALUCIN], Not_A_Plus_ALUCIN, NeedsAlucin),
     -- Logical operations.
-    ([a, And, b], A_And_B),
-    ([a, Xor, b], A_Xor_B),
-    ([Not, OpenParen, a, Xor, b, CloseParen], A_Xnor_B),
-    ([Not, a, And, b], Not_A_And_B),
-    ([a, And, Not, b], A_And_Not_B),
-    ([a, Or, Not, b], A_Or_Not_B),
-    ([Not, a, Or, b], Not_A_Or_B),
-    ([a, Or, b], A_Or_B)
+    ([a, And, b], A_And_B, NoAlucin),
+    ([a, Xor, b], A_Xor_B, NoAlucin),
+    ([Not, OpenParen, a, Xor, b, CloseParen], A_Xnor_B, NoAlucin),
+    ([Not, a, And, b], Not_A_And_B, NoAlucin),
+    ([a, And, Not, b], A_And_Not_B, NoAlucin),
+    ([a, Or, Not, b], A_Or_Not_B, NoAlucin),
+    ([Not, a, Or, b], Not_A_Or_B, NoAlucin),
+    ([a, Or, b], A_Or_B, NoAlucin)
   ]

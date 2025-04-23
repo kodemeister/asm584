@@ -297,39 +297,64 @@ spec_parser = do
 
   describe "operations" $ do
     describe "arithmetic" $ do
-      testOperation "!ALUCIN" DI WR "!ALUCIN" Not_ALUCIN
+      testOperation
+        "!ALUCIN"
+        DI
+        WR
+        "!ALUCIN"
+        (Not_ALUCIN, NeedsAlucin)
       testOperation
         "B - A - 1 + ALUCIN"
         DI
         WR
         "WR - DI - 1 + C"
-        B_Minus_A_Minus_One_Plus_ALUCIN
+        (B_Minus_A_Minus_One_Plus_ALUCIN, NeedsAlucin)
       testOperation
         "A - B - 1 + ALUCIN"
         DI
         WR
         "DI - WR - 1 + C"
-        A_Minus_B_Minus_One_Plus_ALUCIN
+        (A_Minus_B_Minus_One_Plus_ALUCIN, NeedsAlucin)
       testOperation
         "A + B + ALUCIN"
         (RF 6)
         WR
         "рон6 + рр + п"
-        A_Plus_B_Plus_ALUCIN
-      testOperation "B + ALUCIN" DI XWR "XWR+C" B_Plus_ALUCIN
-      testOperation "!B + ALUCIN" DI XWR "!XWR+C" Not_B_Plus_ALUCIN
-      testOperation "A + ALUCIN" (RF 0) WR "RF0  +  C  " A_Plus_ALUCIN
-      testOperation "!A + ALUCIN" (RF 0) WR "!  RF0  +  C  " Not_A_Plus_ALUCIN
+        (A_Plus_B_Plus_ALUCIN, NeedsAlucin)
+      testOperation
+        "B + ALUCIN"
+        DI
+        XWR
+        "XWR+C"
+        (B_Plus_ALUCIN, NeedsAlucin)
+      testOperation
+        "!B + ALUCIN"
+        DI
+        XWR
+        "!XWR+C"
+        (Not_B_Plus_ALUCIN, NeedsAlucin)
+      testOperation
+        "A + ALUCIN"
+        (RF 0)
+        WR
+        "RF0  +  C  "
+        (A_Plus_ALUCIN, NeedsAlucin)
+      testOperation
+        "!A + ALUCIN"
+        (RF 0)
+        WR
+        "!  RF0  +  C  "
+        (Not_A_Plus_ALUCIN, NeedsAlucin)
 
     describe "logical" $ do
-      testOperation "A and B" DI WR "DI and WR" A_And_B
-      testOperation "A xor B" DI XWR "DI xor XWR" A_Xor_B
-      testOperation "!(A xor B)" DI XWR "!(DI xor XWR)" A_Xnor_B
-      testOperation "!A and B" DI WR "!DI and WR" Not_A_And_B
-      testOperation "A and !B" DI WR "DI and!WR" A_And_Not_B
-      testOperation "A or !B" (RF 1) WR "РОН1 или!РР" A_Or_Not_B
-      testOperation "!A or B" (RF 1) WR "!РОН1 или РР" Not_A_Or_B
-      testOperation "A or B" (RF 7) WR "RF7 или WR" A_Or_B
+      testOperation "A and B" DI WR "DI and WR" (A_And_B, NoAlucin)
+      testOperation "A xor B" DI XWR "DI xor XWR" (A_Xor_B, NoAlucin)
+      testOperation "!(A xor B)" DI XWR "!(DI xor XWR)" (A_Xnor_B, NoAlucin)
+      testOperation "!A and B" DI WR "!DI and WR" (Not_A_And_B, NoAlucin)
+      testOperation "A and !B" DI WR "DI and!WR" (A_And_Not_B, NoAlucin)
+      testOperation "A or !B" (RF 1) WR "РОН1 или!РР" (A_Or_Not_B, NoAlucin)
+      testOperation "!A or B" (RF 1) WR "!РОН1 или РР" (Not_A_Or_B, NoAlucin)
+      testOperation "A or B" (RF 7) WR "RF7 или WR" (A_Or_B, NoAlucin)
 
   describe "control statements" $ do
     it "parses 'if' statement without 'else' branch" $
