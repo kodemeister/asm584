@@ -295,6 +295,28 @@ spec_parser = do
     describe "special instructions" $ do
       testInstruction "NOP" "НОП" (No_Operation, NoAlucin)
 
+    describe "reordered operands" $ do
+      testInstructionWithReorderedOperands
+        "DO := DI op WR"
+        "DO := WR and DI"
+        (DO_Assign_DI_Op_WR A_And_B, NoAlucin)
+      testInstructionWithReorderedOperands
+        "XWR := WR + DI + ALUCIN"
+        "XWR := ALUCIN + DI + WR"
+        (XWR_Assign_WR_Plus_DI_Plus_ALUCIN, NeedsAlucin)
+      testInstructionWithReorderedOperands
+        "(WR, XWR) := RSL(WR - RF - 1 + ALUCIN, XWR)"
+        "(WR, XWR) := RSL(-1 + ALUCIN + WR - RF2, XWR)"
+        (WRXWR_Assign_RSL_WRXWR_Minus_RF_Minus_One_Plus_ALUCIN 2, NeedsAlucin)
+      testInstructionWithReorderedOperands
+        "WR := RSR(WR + ALUCIN)"
+        "WR := RSR(ALUCIN + WR)"
+        (WR_Assign_RSR_WR_Plus_ALUCIN, NeedsAlucin)
+      testInstructionWithReorderedOperands
+        "(WR, XWR) := RSR(WR + ALUCIN, XWR)"
+        "(WR, XWR) := RSR(ALUCIN + WR, XWR)"
+        (WRXWR_Assign_RSR_WRXWR_Plus_ALUCIN, NeedsAlucin)
+
   describe "operations" $ do
     describe "arithmetic" $ do
       testOperation
@@ -446,6 +468,13 @@ spec_parser = do
 
     testInstruction name input output =
       it [i|parses an instruction '#{name :: String}'|] $
+        parse instructionP "" input `shouldParse` output
+
+    testInstructionWithReorderedOperands name =
+      testInstructionWith name "reordered operands"
+
+    testInstructionWith name with input output =
+      it [i|parses an instruction '#{name :: String}' with #{with :: String}|] $
         parse instructionP "" input `shouldParse` output
 
     testOperation name a b input output =
