@@ -1,0 +1,10 @@
+cradle:
+  cabal:
+    - path: "src"
+      component: "lib:asm584"
+
+    - path: "app/Main.hs"
+      component: "asm584:exe:asm584"
+
+    - path: "test"
+      component: "asm584:test:asm584-test"
