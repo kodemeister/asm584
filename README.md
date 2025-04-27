@@ -146,7 +146,7 @@ asm584 also provides a special microinstruction `NOP` with an undocumented opcod
 
 The following ALU operations are available for microinstructions #1-#8:
 
-| OP field | Operation            |
+| OP Field | Operation            |
 | -------- | -------------------- |
 | `0000`   | `!ALUCIN`            |
 | `0001`   | `B - A - 1 + ALUCIN` |
@@ -165,7 +165,7 @@ The following ALU operations are available for microinstructions #1-#8:
 | `1110`   | `!A or B`            |
 | `1111`   | `A or B`             |
 
-If a microinstruction requires the value of `ALUCIN`, you should specify either `(ALUCIN=0)` or `(ALUCIN=1)` right after the mnemonic. Otherwise, you will get a syntax error about the missing value of `ALUCIN`.
+If a microinstruction checks the state of `ALUCIN`, you should specify either `(ALUCIN=0)` or `(ALUCIN=1)` right after the mnemonic. Otherwise, you will get a syntax error about the missing value of `ALUCIN`.
 
 Below are some examples that illustrate the syntax of K584VM1 microinstructions:
 
@@ -183,6 +183,30 @@ Below are some examples that illustrate the syntax of K584VM1 microinstructions:
 
     XWR := DI and WR
 ```
+
+You can arrange the operands of arithmetic and logical expressions in any order. For example, the following microinstructions are equivalent:
+
+```
+    DO := DI - WR - 1 + ALUCIN (ALUCIN=0)
+    DO := DI - WR + ALUCIN - 1 (ALUCIN=0)
+    DO := DI - 1 + ALUCIN - WR (ALUCIN=0)
+    DO := -WR + DI - 1 + ALUCIN (ALUCIN=0)
+```
+
+However, when you open the assembled `.x584` file in X584 simulator, the operands will be displayed in their canonical order shown in the microinstruction table above.
+
+You can also omit `ALUCIN` from the microinstruction mnemonic by replacing it with the literal values 0 or 1, and optionally simplify the resulting expression. In this case you do not need to specify `(ALUCIN=0)` or `(ALUCIN=1)` after the mnemonic. The table below presents several examples of microinstructions where `ALUCIN` is either explicitly specified or omitted:
+
+| `ALUCIN` Explicitly Specified           | `ALUCIN` Omitted                                 |
+| --------------------------------------- | ------------------------------------------------ |
+| `DO := !ALUCIN (ALUCIN=0)`              | `DO := !0`                                       |
+| `DO := !ALUCIN (ALUCIN=1)`              | `DO := !1`,<br/>`DO := 0`                        |
+| `DO := WR + ALUCIN (ALUCIN=0)`          | `DO := WR + 0`,<br/>`DO := WR`                   |
+| `DO := WR + ALUCIN (ALUCIN=1)`          | `DO := WR + 1`                                   |
+| `DO := DI - WR - 1 + ALUCIN (ALUCIN=0)` | `DO := DI - WR - 1 + 0`,<br/>`DO := DI - WR - 1` |
+| `DO := DI - WR - 1 + ALUCIN (ALUCIN=1)` | `DO := DI - WR - 1 + 1`,<br/>`DO := DI - WR`     |
+
+X584 always displays microinstructions in their canonical form, with `ALUCIN` explicitly specified.
 
 ### Labels
 
@@ -209,7 +233,7 @@ You can prefix any microinstruction with a `break` keyword. This allows you to s
 
 ### Control Statements
 
-Control statements are a special feature of X584 simulator. They allow to analyze certain outputs of K584VM1, change the program counter and so on. K584VM1 microprocessor itself does not support control statements. They are supposed to be executed by external hardware, such as K584VU1.
+Control statements are a special feature of X584 simulator. They allow to analyze certain outputs of K584VM1 microprocessor, change the program counter and so on. K584VM1 itself does not support control statements. They are supposed to be executed by external hardware, such as K584VU1.
 
 Each microinstruction can have only one optional control statement. It should be placed after either the microinstruction or X584 comment.
 
@@ -219,7 +243,7 @@ asm584 supports the following control statements:
 
    A condition is basically a name of one of K584VM1 outputs listed in the table below. Most of outputs have a few alternative names. You can pick any of them for brevity.
 
-   | Output     | Alternative names |
+   | Output     | Alternative Names |
    | ---------- | ----------------- |
    | `ALUCOUT`  | `CO3`, `C`        |
    | `ALUCOUT2` | `CO2`, `C2`       |
