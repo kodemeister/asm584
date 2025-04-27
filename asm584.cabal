@@ -1,6 +1,6 @@
 cabal-version:      3.0
 name:               asm584
-version:            0.1.0.0
+version:            0.2.0.0
 synopsis:           A simple assembler for K584VM1 microprocessor
 description:
     asm584 translates programs written in K584VM1 assembly language into binary
