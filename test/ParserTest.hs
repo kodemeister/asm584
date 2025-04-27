@@ -56,27 +56,27 @@ spec_parser = do
       parse programP "" `shouldFailOn` "DO := DI goto invalid\nlabel: DO := DI"
 
   describe "statements" $ do
-    testStatement
-      "with a single instruction"
+    testStatementWith
+      "a single instruction"
       "DO := DI"
       defStatement
-    testStatement
-      "with a label"
+    testStatementWith
+      "a label"
       "my_label: DO := DI"
       defStatement {label = Just ("my_label", 0)}
-    testStatement
-      "with a breakpoint"
+    testStatementWith
+      "a breakpoint"
       "break DO := DI"
       defStatement {breakpoint = BreakpointSet}
-    testStatement
-      "with a value of ALUCIN"
+    testStatementWith
+      "a value of ALUCIN"
       "DO := XWR + C (C=1)"
       defStatement
         { instruction = DO_Assign_XWR_Plus_ALUCIN,
           alucinValue = Just True
         }
-    testStatement
-      "with an omitted ALUCIN"
+    testStatementWith
+      "an omitted ALUCIN"
       "DO := XWR"
       defStatement
         { instruction = DO_Assign_XWR_Plus_ALUCIN,
@@ -84,27 +84,27 @@ spec_parser = do
         }
     it "fails to parse a statement if a value of ALUCIN is missing" $
       parse statementP "" `shouldFailOn` "DO := XWR + C"
-    testStatement
-      "with a control statement"
+    testStatementWith
+      "a control statement"
       "DO := DI goto 10"
       defStatement
         { controlStatement =
             Just $ ControlStatement_Goto (Location_Address 10, 14)
         }
-    testStatement
-      "with a comment"
+    testStatementWith
+      "a comment"
       "DO := DI ; Comment"
       defStatement {comment = Just " Comment"}
-    testStatement
-      "with a control statement followed by a comment"
+    testStatementWith
+      "a control statement followed by a comment"
       "DO := DI\ngoto 20\n; My Comment"
       defStatement
         { controlStatement =
             Just $ ControlStatement_Goto (Location_Address 20, 14),
           comment = Just " My Comment"
         }
-    testStatement
-      "with a comment followed by a control statement"
+    testStatementWith
+      "a comment followed by a control statement"
       "DO := DI\n; My Comment\ngoto 30"
       defStatement
         { controlStatement =
@@ -574,8 +574,8 @@ spec_parser = do
     it "fails to parse 'input' statement with an invalid hexadecimal number" $
       parse controlStatementP "" `shouldFailOn` "input 0xdeadbeef"
   where
-    testStatement name input output =
-      it [i|parses a statement #{name :: String}|] $
+    testStatementWith with input output =
+      it [i|parses a statement with #{with :: String}|] $
         parse statementP "" input `shouldParse` output
 
     defStatement =
