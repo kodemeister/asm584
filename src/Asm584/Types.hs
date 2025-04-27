@@ -157,6 +157,8 @@ data Alucin
     NoAlucin
   | -- | Instruction requires a value of ALUCIN after the mnemonic.
     NeedsAlucin
+  | -- | Instruction omits ALUCIN, using the literal values 0 or 1 instead.
+    OmitsAlucin AlucinValue
   deriving (Eq, Show)
 
 data ControlStatement

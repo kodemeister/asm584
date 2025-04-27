@@ -84,6 +84,7 @@ statementP = do
   alucinValue <- case alucin of
     NoAlucin -> pure Nothing
     NeedsAlucin -> Just <$> alucinValueP
+    OmitsAlucin value -> pure $ Just value
   (controlStatement, comment) <-
     runPermutation $ (,) <$> toPerm controlStatementP <*> toPerm commentP
   pure Statement {..}

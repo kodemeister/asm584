@@ -75,6 +75,13 @@ spec_parser = do
         { instruction = DO_Assign_XWR_Plus_ALUCIN,
           alucinValue = Just True
         }
+    testStatement
+      "with an omitted ALUCIN"
+      "DO := XWR"
+      defStatement
+        { instruction = DO_Assign_XWR_Plus_ALUCIN,
+          alucinValue = Just False
+        }
     it "fails to parse a statement if a value of ALUCIN is missing" $
       parse statementP "" `shouldFailOn` "DO := XWR + C"
     testStatement
@@ -317,6 +324,35 @@ spec_parser = do
         "(WR, XWR) := RSR(ALUCIN + WR, XWR)"
         (WRXWR_Assign_RSR_WRXWR_Plus_ALUCIN, NeedsAlucin)
 
+    describe "omitted ALUCIN" $ do
+      testInstructionWithOmittedAlucin
+        "WR := DI op XWR"
+        True
+        "WR := 0"
+        (WR_Assign_DI_Op_XWR Not_ALUCIN, OmitsAlucin True)
+      testInstructionWithOmittedAlucin
+        "XWR := RF + XWR + ALUCIN"
+        False
+        "XWR := XWR + RF4"
+        (XWR_Assign_RF_Plus_XWR_Plus_ALUCIN 4, OmitsAlucin False)
+      testInstructionWithOmittedAlucin
+        "(WR, XWR) := ASR(WR - DI - 1 + ALUCIN, XWR)"
+        True
+        "(WR, XWR) := ASR(WR - DI, XWR)"
+        ( WRXWR_Assign_ASR_WRXWR_Minus_DI_Minus_One_Plus_ALUCIN,
+          OmitsAlucin True
+        )
+      testInstructionWithOmittedAlucin
+        "WR := LSR(WR + ALUCIN)"
+        False
+        "WR := LSR(WR)"
+        (WR_Assign_LSR_WR_Plus_ALUCIN, OmitsAlucin False)
+      testInstructionWithOmittedAlucin
+        "(WR, XWR) := LSL(WR + ALUCIN, XWR)"
+        True
+        "(WR, XWR) := LSL(1 + WR, XWR)"
+        (WRXWR_Assign_LSL_WRXWR_Plus_ALUCIN, OmitsAlucin True)
+
   describe "operations" $ do
     describe "arithmetic" $ do
       testOperation
@@ -410,6 +446,85 @@ spec_parser = do
         "-DI + XWR + ALUCIN - 1"
         (B_Minus_A_Minus_One_Plus_ALUCIN, NeedsAlucin)
 
+    describe "omitted ALUCIN" $ do
+      testOperationWithOmittedAlucin
+        "!ALUCIN"
+        False
+        DI
+        WR
+        "!0"
+        (Not_ALUCIN, OmitsAlucin False)
+      testOperationWithOmittedAlucin
+        "!ALUCIN"
+        True
+        DI
+        WR
+        "!1"
+        (Not_ALUCIN, OmitsAlucin True)
+      testOperationWithOmittedAlucin
+        "A + ALUCIN"
+        False
+        DI
+        XWR
+        "DI + 0"
+        (A_Plus_ALUCIN, OmitsAlucin False)
+      testOperationWithOmittedAlucin
+        "!A + ALUCIN"
+        True
+        DI
+        XWR
+        "1 + !DI"
+        (Not_A_Plus_ALUCIN, OmitsAlucin True)
+      testOperationWithOmittedAlucin
+        "B + ALUCIN"
+        False
+        DI
+        XWR
+        "XWR"
+        (B_Plus_ALUCIN, OmitsAlucin False)
+      testOperationWithOmittedAlucin
+        "A + B + ALUCIN"
+        False
+        (RF 6)
+        WR
+        "RF6 + WR + 0"
+        (A_Plus_B_Plus_ALUCIN, OmitsAlucin False)
+      testOperationWithOmittedAlucin
+        "A + B + ALUCIN"
+        True
+        (RF 7)
+        WR
+        "WR + 1 + RF7"
+        (A_Plus_B_Plus_ALUCIN, OmitsAlucin True)
+      testOperationWithOmittedAlucin
+        "A - B - 1 + ALUCIN"
+        False
+        DI
+        WR
+        "DI - WR - 1 + 0"
+        (A_Minus_B_Minus_One_Plus_ALUCIN, OmitsAlucin False)
+      testOperationWithOmittedAlucin
+        "A - B - 1 + ALUCIN"
+        True
+        DI
+        WR
+        "-1 + DI - WR + 1"
+        (A_Minus_B_Minus_One_Plus_ALUCIN, OmitsAlucin True)
+      testOperationWithOmittedAlucin
+        "B - A - 1 + ALUCIN"
+        False
+        DI
+        XWR
+        "XWR - 1 - DI"
+        (B_Minus_A_Minus_One_Plus_ALUCIN, OmitsAlucin False)
+      testOperationWithOmittedAlucin
+        "B - A - 1 + ALUCIN"
+        True
+        DI
+        XWR
+        "-DI + XWR"
+        (B_Minus_A_Minus_One_Plus_ALUCIN, OmitsAlucin True)
+
   describe "control statements" $ do
     it "parses 'if' statement without 'else' branch" $
       parse controlStatementP "" "if ALUCOUT then label1"
@@ -473,6 +588,9 @@ spec_parser = do
     testInstructionWithReorderedOperands name =
       testInstructionWith name "reordered operands"
 
+    testInstructionWithOmittedAlucin name value =
+      testInstructionWith name [i|omitted ALUCIN=#{fromEnum value}|]
+
     testInstructionWith name with input output =
       it [i|parses an instruction '#{name :: String}' with #{with :: String}|] $
         parse instructionP "" input `shouldParse` output
@@ -483,6 +601,9 @@ spec_parser = do
 
     testOperationWithReorderedOperands name =
       testOperationWith name "reordered operands"
+
+    testOperationWithOmittedAlucin name value =
+      testOperationWith name [i|omitted ALUCIN=#{fromEnum value}|]
 
     testOperationWith name with a b input output =
       it [i|parses an operation '#{name :: String}' with #{with :: String}|] $

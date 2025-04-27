@@ -149,24 +149,53 @@ operations a b =
 
 -- | Returns token sequences for the arithmetic expression "!ALUCIN".
 expr1 :: [(TokenSequence, Alucin)]
-expr1 = [([Not, ALUCIN], NeedsAlucin)]
+expr1 =
+  [ ([Not, ALUCIN], NeedsAlucin),
+    ([Not, Zero], OmitsAlucin False),
+    ([Not, One], OmitsAlucin True),
+    ([Zero], OmitsAlucin True)
+  ]
 
 -- | Returns token sequences for the arithmetic expression "A + ALUCIN".
 expr2 :: TokenSequence -> [(TokenSequence, Alucin)]
 expr2 a =
-  [(ts, NeedsAlucin) | ts <- [a ++ [Plus, ALUCIN], [ALUCIN, Plus] ++ a]]
+  concat
+    [ [(ts, NeedsAlucin) | ts <- perms2 ALUCIN],
+      [(ts, OmitsAlucin False) | ts <- perms2 Zero],
+      [(ts, OmitsAlucin True) | ts <- perms2 One],
+      [(a, OmitsAlucin False)]
+    ]
+  where
+    perms2 c = [a ++ [Plus, c], [c, Plus] ++ a]
 
 -- | Returns token sequences for the arithmetic expression "A + B + ALUCIN".
 expr3 :: Tok -> Tok -> [(TokenSequence, Alucin)]
 expr3 a b =
-  [(intersperse Plus p, NeedsAlucin) | p <- permutations [a, b, ALUCIN]]
+  concat
+    [ [(ts, NeedsAlucin) | ts <- perms3 ALUCIN],
+      [(ts, OmitsAlucin False) | ts <- perms3 Zero],
+      [(ts, OmitsAlucin True) | ts <- perms3 One],
+      [(ts, OmitsAlucin False) | ts <- perms2]
+    ]
+  where
+    perms3 c = map (intersperse Plus) (permutations [a, b, c])
+    perms2 = [[a, Plus, b], [b, Plus, a]]
 
 -- | Returns token sequences for the arithmetic expression "A - B - 1 + ALUCIN".
 expr4 :: Tok -> Tok -> [(TokenSequence, Alucin)]
 expr4 a b =
-  [ (dropWhile (== Plus) (concat p), NeedsAlucin)
-    | p <- permutations [[Plus, a], [Minus, b], [Minus, One], [Plus, ALUCIN]]
-  ]
+  concat
+    [ [(ts, NeedsAlucin) | ts <- perms4 ALUCIN],
+      [(ts, OmitsAlucin False) | ts <- perms4 Zero],
+      [(ts, OmitsAlucin True) | ts <- perms4 One],
+      [(ts, OmitsAlucin False) | ts <- perms3],
+      [(ts, OmitsAlucin True) | ts <- perms2]
+    ]
+  where
+    perms4 c = perms [[Plus, a], [Minus, b], [Minus, One], [Plus, c]]
+    perms3 = perms [[Plus, a], [Minus, b], [Minus, One]]
+    perms2 = [[a, Minus, b], [Minus, b, Plus, a]]
+    perms = map (dropWhile (== Plus) . concat) . permutations
 
 -- | Returns token sequences for the logical expression "A op B".
 op2 :: TokenSequence -> Tok -> TokenSequence -> [(TokenSequence, Alucin)]
