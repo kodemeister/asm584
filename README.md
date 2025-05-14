@@ -1,3 +1,5 @@
+**English** | [Русский](README-ru.md)
+
 # asm584
 
 asm584 translates programs written in K584VM1 assembly language into binary `.x584` files. The resulting files can be opened in [X584 simulator](https://github.com/kodemeister/X584) for further editing and debugging.
@@ -11,7 +13,7 @@ Create a text file named `max.asm` in the same folder where the unpacked executa
 ```
 /*
  * Author: John Doe
- * Description: Calculate the maximum of two 16-bit unsigned integers.
+ * Description: Calculate the maximum of two 16-bit unsigned integers
  */
 
     RF0 := DI                              ; Input A
@@ -31,10 +33,10 @@ out_b:
     goto end
 
 end:
-    NOP
+    break NOP
 ```
 
-Then open a terminal, navigate to the folder where you unpacked the `asm584.exe` executable and saved the `max.asm` file, and run the assembler as shown below:
+Next, open a command prompt and navigate to the folder where you unpacked the `asm584.exe` executable and saved the `max.asm` file. Then, run the assembler as shown below:
 
 ```bat
 cd C:\path\to\asm584-x.x.x.x
@@ -57,7 +59,7 @@ For example:
 .\asm584.exe program.asm
 ```
 
-asm584 will take the input file `program.asm` and produce an output file with the same name but with the `.x584` extension, i.e., `program.x584`.
+asm584 will assemble the input file `program.asm` and produce an output file with the same name but with the `.x584` extension, i.e., `program.x584`.
 
 If you want to specify a custom output file name, you can use the `-o` or `--output` option followed by the desired file name or path:
 
@@ -71,7 +73,7 @@ If you want to check which version of asm584 you are using, you can use the `-v`
 .\asm584.exe --version
 ```
 
-To get further usage instructions, try running asm584 with the `-h` or `--help` option:
+To get further usage instructions, run asm584 with the `-h` or `--help` option:
 
 ```bat
 .\asm584.exe --help
@@ -88,6 +90,8 @@ A program written in K584VM1 assembly language consists of a series of statement
 asm584 places no restrictions on white spaces within a statement. You can indent your code with any number of spaces, add spaces between fields, or move any fields to the next line for better readability.
 
 The assembly language is case insensitive. This means that keywords, registers, labels and other elements of the language can be written in any combination of upper and lower case. For instance, `ALUCIN`, `Alucin`, and `alucin` are considered the same keyword.
+
+The assembly language is also bilingual. You can write your code in either English or Russian. For example, you can use Russian keywords like `РР`, `П`, `если`, and `иди_на` instead of their English counterparts `WR`, `ALUCIN`, `if`, and `goto`. You can even mix different languages, although this is not recommended as it can reduce code readability. For more details about the Russian-based syntax, see the [Russian documentation](README-ru.md).
 
 ### Microinstructions
 
@@ -193,9 +197,9 @@ You can arrange the operands of arithmetic and logical expressions in any order.
     DO := -WR + DI - 1 + ALUCIN (ALUCIN=0)
 ```
 
-However, when you open the assembled `.x584` file in X584 simulator, the operands will be displayed in their canonical order shown in the microinstruction table above.
+However, when you open the assembled `.x584` file in X584 simulator, the operands will be displayed in the standard order shown in the microinstruction table above.
 
-You can also omit `ALUCIN` from the microinstruction mnemonic by replacing it with the literal values 0 or 1, and optionally simplify the resulting expression. In this case you do not need to specify `(ALUCIN=0)` or `(ALUCIN=1)` after the mnemonic. The table below presents several examples of microinstructions where `ALUCIN` is either explicitly specified or omitted:
+You can also omit `ALUCIN` from the microinstruction mnemonic by replacing it with the literal values 0 or 1, and optionally simplifying the resulting expression. In this case you do not need to specify `(ALUCIN=0)` or `(ALUCIN=1)` after the mnemonic. The table below presents several examples of microinstructions where `ALUCIN` is either explicitly specified or omitted:
 
 | `ALUCIN` Explicitly Specified           | `ALUCIN` Omitted                                 |
 | --------------------------------------- | ------------------------------------------------ |
@@ -206,7 +210,7 @@ You can also omit `ALUCIN` from the microinstruction mnemonic by replacing it wi
 | `DO := DI - WR - 1 + ALUCIN (ALUCIN=0)` | `DO := DI - WR - 1 + 0`,<br/>`DO := DI - WR - 1` |
 | `DO := DI - WR - 1 + ALUCIN (ALUCIN=1)` | `DO := DI - WR - 1 + 1`,<br/>`DO := DI - WR`     |
 
-X584 always displays microinstructions in their canonical form, with `ALUCIN` explicitly specified.
+X584 always displays microinstructions in the standard form, with `ALUCIN` explicitly specified.
 
 ### Labels
 
@@ -287,7 +291,7 @@ asm584 supports the following control statements:
        // You can also use numeric addresses although it is not recommended
        DO := RF0 goto 3
 
-       // It is possible to move control statements to the next line for readability
+       // It is possible to move the control statement to the next line for readability
        DO := RF0
        goto end
 
@@ -297,7 +301,7 @@ asm584 supports the following control statements:
 
 3. **Input statement** in the form `input <number>`.
 
-   If you do not want to enter the value of DI every time you run the program, you can specify it directly in the assembly code using the `input` control statement. It accepts a 16-bit number in one of the following formats:
+   If you do not want to enter the value of `DI` every time you run the program, you can specify it directly in the assembly code using the `input` control statement. It accepts a 16-bit number in one of the following formats:
 
    - A 16-digit binary number.
    - A binary number divided into 4 groups of 4 digits separated by space.
@@ -323,11 +327,11 @@ asm584 supports three types of comments:
    ```
    /*
     * Author: John Doe
-    * Description: Calculate the maximum of two 16-bit unsigned integers.
+    * Description: Calculate the maximum of two 16-bit unsigned integers
     */
    ```
 
-2. **Single-line comment** that starts with `//`. Any text between `//` and the end of the line is ignored by the assembler and not saved to `.x584` file. Like multi-line comments, you can place single-line comments anywhere in the source code. Use them to explain or document sections of code, for example:
+2. **Single-line comment** that starts with `//`. Any text between `//` and the end of the line is ignored by the assembler and not saved to `.x584` file. Like multi-line comments, you can place single-line comments anywhere in the source code. Use them to explain sections of code, for example:
 
    ```
        // Generate a bitmask 1000...000 for the sign bit
@@ -336,7 +340,7 @@ asm584 supports three types of comments:
        WR := RSR(WR + ALUCIN) (ALUCIN=0)
    ```
 
-3. **X584 comment** that starts with `;` or `#`. Any text between `;` or `#` and the end of the line will be saved to `.x584` file and displayed under the "Comment" column in X584. Each microinstruction can have only one optional X584 comment. It should be placed after either the microinstruction or the control statement. Use X584 comments to explain the meaning of single microinstructions that you want to appear in X584, for example:
+3. **X584 comment** that starts with `;` or `#`. Any text between `;` or `#` and the end of the line will be saved to `.x584` file and displayed under the "Comment" column in X584. Each microinstruction can have only one optional X584 comment. It should be placed after either the microinstruction or the control statement. Use X584 comments to explain the meaning of single microinstructions, for example:
 
    ```
        RF0 := DI ; Input A
